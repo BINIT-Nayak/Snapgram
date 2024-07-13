@@ -1,5 +1,5 @@
 # Snapgram 
-## A Social Media Application
+ A Social Media Application
 
 
 
