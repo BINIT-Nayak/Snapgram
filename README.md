@@ -1,6 +1,8 @@
 # Snapgram - A Social Media Application
 
+Welcome to Snapgram! 📸🌟
 
+Snapgram is a dynamic social media application that combines the best features of Snapchat and Instagram. It’s designed to provide users with a seamless and engaging experience of sharing moments through photos and videos.
 
 ## ⚙️ Tech Stack
 
