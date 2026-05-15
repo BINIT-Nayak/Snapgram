@@ -1,9 +1,9 @@
 import { ID, Query } from "appwrite";
 
-import { INewUser, UserDocument } from "@/types";
+import { NewUser, UserDocument } from "@/types";
 import { appwriteConfig, account, avatars, databases } from "./config";
 
-export async function createUserAccount(user: INewUser) {
+export async function createUserAccount(user: NewUser) {
   const newAccount = await account.create(
     ID.unique(),
     user.email,

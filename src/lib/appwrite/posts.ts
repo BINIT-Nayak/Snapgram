@@ -1,11 +1,11 @@
 import { ID, Query } from "appwrite";
 
-import { INewPost, IUpdatePost, PostDocument } from "@/types";
+import { NewPost, PostDocument, UpdatePostInput } from "@/types";
 import { appwriteConfig, databases } from "./config";
 import { deleteFile, getFilePreview, uploadFile } from "./storage";
 import { assertResult, parseTags } from "./utils";
 
-export async function createPost(post: INewPost) {
+export async function createPost(post: NewPost) {
   const uploadedFile = await uploadFile(post.file[0]);
   const fileUrl = getFilePreview(uploadedFile.$id);
 
@@ -65,7 +65,7 @@ export async function getPostById(postId?: string) {
   );
 }
 
-export async function updatePost(post: IUpdatePost) {
+export async function updatePost(post: UpdatePostInput) {
   const hasFileToUpdate = post.file.length > 0;
 
   let image: { imageUrl: string | URL; imageId: string } = {

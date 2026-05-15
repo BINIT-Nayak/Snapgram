@@ -34,15 +34,11 @@ import {
   savePost,
   deleteSavedPost,
 } from "@/lib/appwrite/api";
-import { INewPost, INewUser, IUpdatePost, IUpdateUser } from "@/types";
-
-// ============================================================
-// AUTH QUERIES
-// ============================================================
+import { NewPost, NewUser, UpdatePostInput, UpdateUserInput } from "@/types";
 
 export const useCreateUserAccount = () => {
   return useMutation({
-    mutationFn: (user: INewUser) => createUserAccount(user),
+    mutationFn: (user: NewUser) => createUserAccount(user),
   });
 };
 
@@ -59,22 +55,16 @@ export const useSignOutAccount = () => {
   });
 };
 
-// ============================================================
-// POST QUERIES
-// ============================================================
-
 export const useGetPosts = () => {
   return useInfiniteQuery({
     queryKey: [QUERY_KEYS.GET_INFINITE_POSTS],
     queryFn: ({ pageParam }: QueryFunctionContext) =>
       getInfinitePosts({ pageParam: pageParam as string | undefined }),
     getNextPageParam: (lastPage) => {
-      // If there's no data, there are no more pages.
       if (lastPage && lastPage.documents.length === 0) {
         return null;
       }
 
-      // Use the $id of the last document as the cursor.
       const lastId = lastPage.documents[lastPage.documents.length - 1].$id;
       return lastId;
     },
@@ -99,7 +89,7 @@ export const useGetRecentPosts = () => {
 export const useCreatePost = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (post: INewPost) => createPost(post),
+    mutationFn: (post: NewPost) => createPost(post),
     onSuccess: () => {
       invalidatePostLists(queryClient);
     },
@@ -125,7 +115,7 @@ export const useGetUserPosts = (userId?: string) => {
 export const useUpdatePost = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (post: IUpdatePost) => updatePost(post),
+    mutationFn: (post: UpdatePostInput) => updatePost(post),
     onSuccess: (data) => {
       invalidatePostDetail(queryClient, data?.$id);
       invalidatePostLists(queryClient);
@@ -187,10 +177,6 @@ export const useDeleteSavedPost = () => {
   });
 };
 
-// ============================================================
-// USER QUERIES
-// ============================================================
-
 export const useGetCurrentUser = () => {
   return useQuery({
     queryKey: [QUERY_KEYS.GET_CURRENT_USER],
@@ -216,7 +202,7 @@ export const useGetUserById = (userId: string) => {
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (user: IUpdateUser) => updateUser(user),
+    mutationFn: (user: UpdateUserInput) => updateUser(user),
     onSuccess: (data) => {
       invalidateCurrentUser(queryClient);
       invalidateUserDetail(queryClient, data?.$id);

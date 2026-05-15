@@ -35,7 +35,6 @@ const UpdateProfile = () => {
     },
   });
 
-  // Queries
   const { data: currentUser } = useGetUserById(id || "");
   const { mutateAsync: updateUser, isLoading: isLoadingUpdate } =
     useUpdateUser();
@@ -47,7 +46,6 @@ const UpdateProfile = () => {
       </div>
     );
 
-  // Handler
   const handleUpdate = async (value: z.infer<typeof ProfileValidation>) => {
     try {
       const updatedUser = await updateUser({

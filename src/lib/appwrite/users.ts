@@ -1,6 +1,6 @@
 import { Query } from "appwrite";
 
-import { IUpdateUser, UserDocument } from "@/types";
+import { UpdateUserInput, UserDocument } from "@/types";
 import { appwriteConfig, databases } from "./config";
 import { deleteFile, getFilePreview, uploadFile } from "./storage";
 import { assertResult } from "./utils";
@@ -27,7 +27,7 @@ export async function getUserById(userId: string) {
   );
 }
 
-export async function updateUser(user: IUpdateUser) {
+export async function updateUser(user: UpdateUserInput) {
   const hasFileToUpdate = user.file.length > 0;
   let image = {
     imageUrl: user.imageUrl,

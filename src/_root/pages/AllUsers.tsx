@@ -1,16 +1,20 @@
-import { useToast } from "@/components/ui/use-toast";
-import { Loader, UserCard } from "@/components/shared";
+import { ErrorState, Loader, UserCard } from "@/components/shared";
 import { useGetUsers } from "@/lib/react-query/queries";
 
 const AllUsers = () => {
-  const { toast } = useToast();
-
-  const { data: creators, isLoading, isError: isErrorCreators } = useGetUsers();
+  const {
+    data: creators,
+    isLoading,
+    isError: isErrorCreators,
+    refetch,
+  } = useGetUsers();
 
   if (isErrorCreators) {
-    toast({ title: "Something went wrong." });
-    
-    return;
+    return (
+      <div className="common-container">
+        <ErrorState message="Could not load users." onRetry={() => refetch()} />
+      </div>
+    );
   }
 
   return (
