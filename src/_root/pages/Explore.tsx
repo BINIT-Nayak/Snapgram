@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Models } from "appwrite";
 import { useInView } from "react-intersection-observer";
 
 import { Input } from "@/components/ui";
@@ -8,7 +9,7 @@ import { useGetPosts, useSearchPosts } from "@/lib/react-query/queries";
 
 export type SearchResultProps = {
   isSearchFetching: boolean;
-  searchedPosts: any;
+  searchedPosts?: Models.DocumentList<Models.Document>;
 };
 
 const SearchResults = ({ isSearchFetching, searchedPosts }: SearchResultProps) => {
@@ -29,13 +30,14 @@ const Explore = () => {
 
   const [searchValue, setSearchValue] = useState("");
   const debouncedSearch = useDebounce(searchValue, 500);
-  const { data: searchedPosts, isFetching: isSearchFetching } = useSearchPosts(debouncedSearch);
+  const { data: searchedPosts, isFetching: isSearchFetching } =
+    useSearchPosts(debouncedSearch);
 
   useEffect(() => {
     if (inView && !searchValue) {
       fetchNextPage();
     }
-  }, [inView, searchValue]);
+  }, [fetchNextPage, inView, searchValue]);
 
   if (!posts)
     return (

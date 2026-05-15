@@ -68,7 +68,12 @@ const SignupForm = () => {
         return;
       }
     } catch (error) {
-      console.log({ error });
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Sign up failed. Please try again.";
+
+      toast({ title: message });
     }
   };
 

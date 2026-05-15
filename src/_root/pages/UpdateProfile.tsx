@@ -49,28 +49,40 @@ const UpdateProfile = () => {
 
   // Handler
   const handleUpdate = async (value: z.infer<typeof ProfileValidation>) => {
-    const updatedUser = await updateUser({
-      userId: currentUser.$id,
-      name: value.name,
-      bio: value.bio,
-      file: value.file,
-      imageUrl: currentUser.imageUrl,
-      imageId: currentUser.imageId,
-    });
+    try {
+      const updatedUser = await updateUser({
+        userId: currentUser.$id,
+        name: value.name,
+        bio: value.bio,
+        file: value.file,
+        imageUrl: currentUser.imageUrl,
+        imageId: currentUser.imageId,
+      });
 
-    if (!updatedUser) {
+      if (!updatedUser) {
+        toast({
+          title: `Update user failed. Please try again.`,
+        });
+        return;
+      }
+
+      setUser({
+        ...user,
+        name: updatedUser.name,
+        bio: updatedUser.bio,
+        imageUrl: updatedUser.imageUrl,
+      });
+      return navigate(`/profile/${id}`);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Update user failed. Please try again.";
+
       toast({
-        title: `Update user failed. Please try again.`,
+        title: message,
       });
     }
-
-    setUser({
-      ...user,
-      name: updatedUser?.name,
-      bio: updatedUser?.bio,
-      imageUrl: updatedUser?.imageUrl,
-    });
-    return navigate(`/profile/${id}`);
   };
 
   return (

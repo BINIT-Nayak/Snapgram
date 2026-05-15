@@ -1,5 +1,5 @@
 import { Models } from "appwrite";
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 import { checkIsLiked } from "@/lib/utils";
@@ -17,7 +17,10 @@ type PostStatsProps = {
 
 const PostStats = ({ post, userId }: PostStatsProps) => {
   const location = useLocation();
-  const likesList = post.likes.map((user: Models.Document) => user.$id);
+  const likesList = useMemo(
+    () => post.likes.map((user: Models.Document) => user.$id),
+    [post.likes]
+  );
 
   const [likes, setLikes] = useState<string[]>(likesList);
   const [isSaved, setIsSaved] = useState(false);
@@ -34,13 +37,18 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
 
   useEffect(() => {
     setIsSaved(!!savedPostRecord);
-  }, [currentUser]);
+  }, [savedPostRecord]);
+
+  useEffect(() => {
+    setLikes(likesList);
+  }, [likesList]);
 
   const handleLikePost = (
     e: React.MouseEvent<HTMLImageElement, MouseEvent>
   ) => {
     e.stopPropagation();
 
+    const previousLikes = likes;
     let likesArray = [...likes];
 
     if (likesArray.includes(userId)) {
@@ -50,7 +58,14 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
     }
 
     setLikes(likesArray);
-    likePost({ postId: post.$id, likesArray });
+    likePost(
+      { postId: post.$id, likesArray },
+      {
+        onError: () => {
+          setLikes(previousLikes);
+        },
+      }
+    );
   };
 
   const handleSavePost = (
@@ -60,11 +75,22 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
 
     if (savedPostRecord) {
       setIsSaved(false);
-      return deleteSavePost(savedPostRecord.$id);
+      return deleteSavePost(savedPostRecord.$id, {
+        onError: () => {
+          setIsSaved(true);
+        },
+      });
     }
 
-    savePost({ userId: userId, postId: post.$id });
     setIsSaved(true);
+    savePost(
+      { userId: userId, postId: post.$id },
+      {
+        onError: () => {
+          setIsSaved(false);
+        },
+      }
+    );
   };
 
   const containerStyles = location.pathname.startsWith("/profile")

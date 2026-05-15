@@ -58,8 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       return false;
-    } catch (error) {
-      console.error(error);
+    } catch {
       setUser(INITIAL_USER);
       setIsAuthenticated(false);
       return false;
@@ -87,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         navigate("/sign-in");
       }
     });
-  }, []);
+  }, [navigate]);
 
   const value = {
     user,
