@@ -18,7 +18,7 @@ type PostStatsProps = {
 const PostStats = ({ post, userId }: PostStatsProps) => {
   const location = useLocation();
   const likesList = useMemo(
-    () => post.likes.map((user) => user.$id),
+    () => (post.likes || []).map((user) => user.$id),
     [post.likes]
   );
 
@@ -31,9 +31,12 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
 
   const { data: currentUser } = useGetCurrentUser();
 
-  const savedPostRecord = currentUser?.save?.find(
-    (record) => record.post.$id === post.$id
-  );
+  const savedPostRecord = currentUser?.save?.find((record) => {
+    const savedPostId =
+      typeof record.post === "string" ? record.post : record.post?.$id;
+
+    return savedPostId === post.$id;
+  });
 
   useEffect(() => {
     setIsSaved(!!savedPostRecord);
@@ -44,7 +47,7 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
   }, [likesList]);
 
   const handleLikePost = (
-    e: React.MouseEvent<HTMLImageElement, MouseEvent>
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
     e.stopPropagation();
 
@@ -69,7 +72,7 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
   };
 
   const handleSavePost = (
-    e: React.MouseEvent<HTMLImageElement, MouseEvent>
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
     e.stopPropagation();
 
@@ -99,32 +102,48 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
 
   return (
     <div
-      className={`flex justify-between items-center z-20 ${containerStyles}`}>
-      <div className="flex gap-2 mr-5">
-        <img
-          src={`${
-            checkIsLiked(likes, userId)
-              ? "/assets/icons/liked.svg"
-              : "/assets/icons/like.svg"
-          }`}
-          alt="like"
-          width={20}
-          height={20}
+      className={`post-stats-container z-20 ${containerStyles}`}>
+      <div className="flex gap-2 mr-5 items-center">
+        <button
+          type="button"
+          aria-label={checkIsLiked(likes, userId) ? "Unlike post" : "Like post"}
           onClick={(e) => handleLikePost(e)}
-          className="cursor-pointer"
-        />
-        <p className="small-medium lg:base-medium">{likes.length}</p>
+          className={`post-action-btn ${
+            checkIsLiked(likes, userId) ? "post-action-btn_liked" : ""
+          }`}>
+          <img
+            src={
+              checkIsLiked(likes, userId)
+                ? "/assets/icons/liked.svg"
+                : "/assets/icons/like.svg"
+            }
+            alt=""
+            width={20}
+            height={20}
+            className="h-5 w-5"
+          />
+        </button>
+        <p className="small-semibold lg:base-medium text-light-2">
+          {likes.length}
+        </p>
       </div>
 
       <div className="flex gap-2">
-        <img
-          src={isSaved ? "/assets/icons/saved.svg" : "/assets/icons/save.svg"}
-          alt="share"
-          width={20}
-          height={20}
-          className="cursor-pointer"
+        <button
+          type="button"
+          aria-label={isSaved ? "Remove saved post" : "Save post"}
           onClick={(e) => handleSavePost(e)}
-        />
+          className={`post-action-btn ${
+            isSaved ? "post-action-btn_saved" : ""
+          }`}>
+          <img
+            src={isSaved ? "/assets/icons/saved.svg" : "/assets/icons/save.svg"}
+            alt=""
+            width={20}
+            height={20}
+            className="h-5 w-5"
+          />
+        </button>
       </div>
     </div>
   );

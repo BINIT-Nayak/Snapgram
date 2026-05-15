@@ -91,6 +91,8 @@ email       string
 imageUrl    string
 imageId     string, optional
 bio         string
+followers   string array, optional
+following   string array, optional
 posts       relationship to posts
 save        relationship to saves
 ```

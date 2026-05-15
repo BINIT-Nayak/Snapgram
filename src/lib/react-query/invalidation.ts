@@ -23,6 +23,18 @@ export const invalidateCurrentUser = (queryClient: QueryClient) => {
   });
 };
 
+export const invalidateSavedPosts = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({
+    queryKey: [QUERY_KEYS.GET_SAVED_POSTS],
+  });
+};
+
+export const invalidateUsers = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({
+    queryKey: [QUERY_KEYS.GET_USERS],
+  });
+};
+
 export const invalidatePostDetail = (
   queryClient: QueryClient,
   postId?: string

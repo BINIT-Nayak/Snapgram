@@ -62,7 +62,7 @@ const LeftSidebar = () => {
               <li
                 key={link.label}
                 className={`leftsidebar-link group ${
-                  isActive && "bg-primary-500"
+                  isActive && "bg-gradient-to-r from-primary-500 to-secondary-500 shadow-lg shadow-black"
                 }`}>
                 <NavLink
                   to={link.route}

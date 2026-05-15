@@ -19,6 +19,8 @@ export async function createUserAccount(user: NewUser) {
     email: newAccount.email,
     username: user.username,
     imageUrl: avatarUrl,
+    followers: [],
+    following: [],
   });
 }
 
@@ -28,6 +30,8 @@ export async function saveUserToDB(user: {
   name: string;
   imageUrl: URL;
   username?: string;
+  followers: string[];
+  following: string[];
 }) {
   return databases.createDocument<UserDocument>(
     appwriteConfig.databaseId,

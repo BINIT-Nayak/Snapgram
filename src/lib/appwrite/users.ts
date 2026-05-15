@@ -74,3 +74,73 @@ export async function updateUser(user: UpdateUserInput) {
 
   return result;
 }
+
+export async function followUser(currentUserId: string, targetUserId: string) {
+  if (currentUserId === targetUserId) {
+    throw new Error("You cannot follow yourself.");
+  }
+
+  const [currentUser, targetUser] = await Promise.all([
+    getUserById(currentUserId),
+    getUserById(targetUserId),
+  ]);
+
+  const following = Array.from(
+    new Set([...(currentUser.following || []), targetUserId])
+  );
+  const followers = Array.from(
+    new Set([...(targetUser.followers || []), currentUserId])
+  );
+
+  await Promise.all([
+    databases.updateDocument<UserDocument>(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      currentUserId,
+      { following }
+    ),
+    databases.updateDocument<UserDocument>(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      targetUserId,
+      { followers }
+    ),
+  ]);
+
+  return { status: "Ok" };
+}
+
+export async function unfollowUser(currentUserId: string, targetUserId: string) {
+  if (currentUserId === targetUserId) {
+    throw new Error("You cannot unfollow yourself.");
+  }
+
+  const [currentUser, targetUser] = await Promise.all([
+    getUserById(currentUserId),
+    getUserById(targetUserId),
+  ]);
+
+  const following = (currentUser.following || []).filter(
+    (userId) => userId !== targetUserId
+  );
+  const followers = (targetUser.followers || []).filter(
+    (userId) => userId !== currentUserId
+  );
+
+  await Promise.all([
+    databases.updateDocument<UserDocument>(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      currentUserId,
+      { following }
+    ),
+    databases.updateDocument<UserDocument>(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      targetUserId,
+      { followers }
+    ),
+  ]);
+
+  return { status: "Ok" };
+}

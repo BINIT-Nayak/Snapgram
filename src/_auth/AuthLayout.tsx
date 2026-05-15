@@ -11,15 +11,18 @@ export default function AuthLayout() {
         <Navigate to="/" />
       ) : (
         <>
-          <section className="flex flex-1 justify-center items-center flex-col py-10">
+          <section className="flex flex-1 justify-center items-center flex-col px-5 py-10">
             <Outlet />
           </section>
 
-          <img
-            src="/assets/images/explore.jpg"
-            alt="logo"
-            className="hidden xl:block h-screen w-1/2 object-cover bg-no-repeat"
-          />
+          <section className="relative hidden h-screen w-1/2 overflow-hidden xl:block">
+            <img
+              src="/assets/images/explore.jpg"
+              alt="Snapgram preview"
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+          </section>
         </>
       )}
     </>

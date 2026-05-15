@@ -11,8 +11,10 @@ import {
   invalidateCurrentUser,
   invalidatePostDetail,
   invalidatePostLists,
+  invalidateSavedPosts,
   invalidateUserDetail,
   invalidateUserPosts,
+  invalidateUsers,
 } from "@/lib/react-query/invalidation";
 import {
   createUserAccount,
@@ -27,12 +29,15 @@ import {
   deletePost,
   likePost,
   getUserById,
+  followUser,
   updateUser,
+  unfollowUser,
   getRecentPosts,
   getInfinitePosts,
   searchPosts,
   savePost,
   deleteSavedPost,
+  getSavedPosts,
 } from "@/lib/appwrite/api";
 import { NewPost, NewUser, UpdatePostInput, UpdateUserInput } from "@/types";
 
@@ -92,6 +97,7 @@ export const useCreatePost = () => {
     mutationFn: (post: NewPost) => createPost(post),
     onSuccess: () => {
       invalidatePostLists(queryClient);
+      invalidateUserPosts(queryClient);
     },
   });
 };
@@ -162,6 +168,7 @@ export const useSavePost = () => {
     onSuccess: () => {
       invalidatePostLists(queryClient);
       invalidateCurrentUser(queryClient);
+      invalidateSavedPosts(queryClient);
     },
   });
 };
@@ -173,7 +180,16 @@ export const useDeleteSavedPost = () => {
     onSuccess: () => {
       invalidatePostLists(queryClient);
       invalidateCurrentUser(queryClient);
+      invalidateSavedPosts(queryClient);
     },
+  });
+};
+
+export const useGetSavedPosts = (userId?: string) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_SAVED_POSTS, userId],
+    queryFn: () => getSavedPosts(userId),
+    enabled: !!userId,
   });
 };
 
@@ -206,6 +222,45 @@ export const useUpdateUser = () => {
     onSuccess: (data) => {
       invalidateCurrentUser(queryClient);
       invalidateUserDetail(queryClient, data?.$id);
+    },
+  });
+};
+
+type FollowMutationInput = {
+  currentUserId: string;
+  targetUserId: string;
+};
+
+const invalidateFollowState = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  { currentUserId, targetUserId }: FollowMutationInput
+) => {
+  invalidateCurrentUser(queryClient);
+  invalidateUsers(queryClient);
+  invalidateUserDetail(queryClient, currentUserId);
+  invalidateUserDetail(queryClient, targetUserId);
+};
+
+export const useFollowUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ currentUserId, targetUserId }: FollowMutationInput) =>
+      followUser(currentUserId, targetUserId),
+    onSuccess: (_data, variables) => {
+      invalidateFollowState(queryClient, variables);
+    },
+  });
+};
+
+export const useUnfollowUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ currentUserId, targetUserId }: FollowMutationInput) =>
+      unfollowUser(currentUserId, targetUserId),
+    onSuccess: (_data, variables) => {
+      invalidateFollowState(queryClient, variables);
     },
   });
 };
