@@ -32,11 +32,39 @@ export async function createPost(post: NewPost) {
 }
 
 export async function searchPosts(searchTerm: string) {
-  return databases.listDocuments<PostDocument>(
-    appwriteConfig.databaseId,
-    appwriteConfig.postCollectionId,
-    [Query.search("caption", searchTerm)]
-  );
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+
+  try {
+    return await databases.listDocuments<PostDocument>(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      [Query.search("caption", searchTerm)]
+    );
+  } catch {
+    const posts = await databases.listDocuments<PostDocument>(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      [Query.orderDesc("$createdAt"), Query.limit(50)]
+    );
+
+    return {
+      ...posts,
+      documents: posts.documents.filter((post) => {
+        const searchableText = [
+          post.caption,
+          post.location,
+          post.creator?.name,
+          post.creator?.username,
+          ...(post.tags || []),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(normalizedSearch);
+      }),
+    };
+  }
 }
 
 export async function getInfinitePosts({ pageParam }: { pageParam?: string }) {

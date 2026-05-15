@@ -77,10 +77,12 @@ export const useGetPosts = () => {
 };
 
 export const useSearchPosts = (searchTerm: string) => {
+  const trimmedSearch = searchTerm.trim();
+
   return useQuery({
-    queryKey: [QUERY_KEYS.SEARCH_POSTS, searchTerm],
-    queryFn: () => searchPosts(searchTerm),
-    enabled: !!searchTerm,
+    queryKey: [QUERY_KEYS.SEARCH_POSTS, trimmedSearch],
+    queryFn: () => searchPosts(trimmedSearch),
+    enabled: !!trimmedSearch,
   });
 };
 

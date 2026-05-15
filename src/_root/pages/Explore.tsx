@@ -4,17 +4,33 @@ import { useInView } from "react-intersection-observer";
 import { Input } from "@/components/ui";
 import { DocumentList, PostDocument } from "@/types";
 import useDebounce from "@/hooks/useDebounce";
-import { GridPostList, Loader } from "@/components/shared";
+import { ErrorState, GridPostList, Loader } from "@/components/shared";
 import { useGetPosts, useSearchPosts } from "@/lib/react-query/queries";
 
+type ExploreFilter = "all" | "liked" | "latest";
+
 export type SearchResultProps = {
+  isSearchError: boolean;
   isSearchFetching: boolean;
+  onRetry: () => void;
   searchedPosts?: DocumentList<PostDocument>;
 };
 
-const SearchResults = ({ isSearchFetching, searchedPosts }: SearchResultProps) => {
+const SearchResults = ({
+  isSearchError,
+  isSearchFetching,
+  onRetry,
+  searchedPosts,
+}: SearchResultProps) => {
   if (isSearchFetching) {
     return <Loader />;
+  } else if (isSearchError) {
+    return (
+      <ErrorState
+        message="Could not search posts right now."
+        onRetry={onRetry}
+      />
+    );
   } else if (searchedPosts && searchedPosts.documents.length > 0) {
     return <GridPostList posts={searchedPosts.documents} />;
   } else {
@@ -26,35 +42,75 @@ const SearchResults = ({ isSearchFetching, searchedPosts }: SearchResultProps) =
 
 const Explore = () => {
   const { ref, inView } = useInView();
-  const { data: posts, fetchNextPage, hasNextPage } = useGetPosts();
+  const {
+    data: posts,
+    fetchNextPage,
+    hasNextPage,
+    isError: isPostsError,
+    isFetchingNextPage,
+    refetch: refetchPosts,
+  } = useGetPosts();
 
   const [searchValue, setSearchValue] = useState("");
+  const [activeFilter, setActiveFilter] = useState<ExploreFilter>("all");
   const debouncedSearch = useDebounce(searchValue, 500);
-  const { data: searchedPosts, isFetching: isSearchFetching } =
-    useSearchPosts(debouncedSearch);
+  const {
+    data: searchedPosts,
+    isError: isSearchError,
+    isFetching: isSearchFetching,
+    refetch: refetchSearch,
+  } = useSearchPosts(debouncedSearch);
 
   useEffect(() => {
-    if (inView && !searchValue) {
+    if (inView && !searchValue && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  }, [fetchNextPage, inView, searchValue]);
+  }, [fetchNextPage, hasNextPage, inView, isFetchingNextPage, searchValue]);
 
-  if (!posts)
+  if (!posts && !isPostsError)
     return (
       <div className="flex-center w-full h-full">
         <Loader />
       </div>
     );
 
+  if (isPostsError) {
+    return (
+      <div className="explore-container">
+        <ErrorState
+          message="Could not load explore posts."
+          onRetry={() => refetchPosts()}
+        />
+      </div>
+    );
+  }
+
   const shouldShowSearchResults = searchValue !== "";
-  const shouldShowPosts = !shouldShowSearchResults && 
-    posts.pages.every((item) => item.documents.length === 0);
+  const allPosts = Array.from(
+    new Map(
+      posts?.pages
+        .flatMap((item) => item.documents)
+        .map((post) => [post.$id, post]) || []
+    ).values()
+  );
+  const visiblePosts = [...allPosts].sort((firstPost, secondPost) => {
+    if (activeFilter === "liked") {
+      return (secondPost.likes?.length || 0) - (firstPost.likes?.length || 0);
+    }
+
+    return (
+      new Date(secondPost.$createdAt).getTime() -
+      new Date(firstPost.$createdAt).getTime()
+    );
+  });
+  const shouldShowPosts =
+    !shouldShowSearchResults && visiblePosts.length === 0;
 
   return (
     <div className="explore-container">
       <div className="explore-inner_container">
         <h2 className="h3-bold md:h2-bold w-full">Search Posts</h2>
-        <div className="flex gap-1 px-4 w-full rounded-lg bg-dark-4">
+        <div className="explore-searchbar">
           <img
             src="/assets/icons/search.svg"
             width={24}
@@ -63,7 +119,7 @@ const Explore = () => {
           />
           <Input
             type="text"
-            placeholder="Search"
+            placeholder="Search for captions..."
             className="explore-search"
             value={searchValue}
             onChange={(e) => {
@@ -71,41 +127,58 @@ const Explore = () => {
               setSearchValue(value);
             }}
           />
+          {searchValue && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              className="explore-clear_btn"
+              onClick={() => setSearchValue("")}>
+              ×
+            </button>
+          )}
         </div>
       </div>
 
       <div className="flex-between w-full max-w-5xl mt-16 mb-7">
         <h3 className="body-bold md:h3-bold">Popular Today</h3>
 
-        <div className="flex-center gap-3 bg-dark-3 rounded-xl px-4 py-2 cursor-pointer">
-          <p className="small-medium md:base-medium text-light-2">All</p>
-          <img
-            src="/assets/icons/filter.svg"
-            width={20}
-            height={20}
-            alt="filter"
-          />
+        <div className="explore-filter_group">
+          {[
+            { label: "All", value: "all" },
+            { label: "Most liked", value: "liked" },
+            { label: "Latest", value: "latest" },
+          ].map((filter) => (
+            <button
+              key={filter.value}
+              type="button"
+              className={`explore-filter_btn ${
+                activeFilter === filter.value ? "explore-filter_btn-active" : ""
+              }`}
+              onClick={() => setActiveFilter(filter.value as ExploreFilter)}>
+              {filter.label}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="flex flex-wrap gap-9 w-full max-w-5xl">
         {shouldShowSearchResults ? (
           <SearchResults
+            isSearchError={isSearchError}
             isSearchFetching={isSearchFetching}
+            onRetry={() => refetchSearch()}
             searchedPosts={searchedPosts}
           />
         ) : shouldShowPosts ? (
           <p className="text-light-4 mt-10 text-center w-full">End of posts</p>
         ) : (
-          posts.pages.map((item, index) => (
-            <GridPostList key={`page-${index}`} posts={item.documents} />
-          ))
+          <GridPostList posts={visiblePosts} />
         )}
       </div>
 
       {hasNextPage && !searchValue && (
         <div ref={ref} className="mt-10">
-          <Loader />
+          {isFetchingNextPage && <Loader />}
         </div>
       )}
     </div>
