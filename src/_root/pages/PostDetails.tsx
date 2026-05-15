@@ -32,7 +32,9 @@ const PostDetails = () => {
     : post?.imageUrl;
 
   const handleDeletePost = () => {
-    deletePost({ postId: id, imageId: post?.imageId });
+    if (!post?.imageId) return;
+
+    deletePost({ postId: id, imageId: post.imageId });
     navigate(-1);
   };
 
@@ -125,7 +127,7 @@ const PostDetails = () => {
             <div className="flex flex-col flex-1 w-full small-medium lg:base-regular">
               <p>{post?.caption}</p>
               <ul className="flex gap-1 mt-2">
-                {post?.tags.map((tag: string, index: string) => (
+                {post?.tags.map((tag: string, index: number) => (
                   <li
                     key={`${tag}${index}`}
                     className="text-light-3 small-regular">

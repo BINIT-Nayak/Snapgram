@@ -1,7 +1,5 @@
-import { Models } from "appwrite";
-
 // import { useToast } from "@/components/ui/use-toast";
-import { Loader, PostCard, UserCard } from "@/components/shared";
+import { ErrorState, Loader, PostCard, UserCard } from "@/components/shared";
 import { useGetRecentPosts, useGetUsers } from "@/lib/react-query/queries";
 
 const Home = () => {
@@ -11,21 +9,29 @@ const Home = () => {
     data: posts,
     isLoading: isPostLoading,
     isError: isErrorPosts,
+    refetch: refetchPosts,
   } = useGetRecentPosts();
   const {
     data: creators,
     isLoading: isUserLoading,
     isError: isErrorCreators,
+    refetch: refetchCreators,
   } = useGetUsers(10);
 
   if (isErrorPosts || isErrorCreators) {
     return (
       <div className="flex flex-1">
         <div className="home-container">
-          <p className="body-medium text-light-1">Something bad happened</p>
+          <ErrorState
+            message="Could not load your feed."
+            onRetry={() => refetchPosts()}
+          />
         </div>
         <div className="home-creators">
-          <p className="body-medium text-light-1">Something bad happened</p>
+          <ErrorState
+            message="Could not load creators."
+            onRetry={() => refetchCreators()}
+          />
         </div>
       </div>
     );
@@ -40,7 +46,7 @@ const Home = () => {
             <Loader />
           ) : (
             <ul className="flex flex-col flex-1 gap-9 w-full ">
-              {posts?.documents.map((post: Models.Document) => (
+              {posts?.documents.map((post) => (
                 <li key={post.$id} className="flex justify-center w-full">
                   <PostCard post={post} />
                 </li>

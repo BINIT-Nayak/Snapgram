@@ -8,6 +8,13 @@ import {
 
 import { QUERY_KEYS } from "@/lib/react-query/queryKeys";
 import {
+  invalidateCurrentUser,
+  invalidatePostDetail,
+  invalidatePostLists,
+  invalidateUserDetail,
+  invalidateUserPosts,
+} from "@/lib/react-query/invalidation";
+import {
   createUserAccount,
   signInAccount,
   getCurrentUser,
@@ -94,12 +101,7 @@ export const useCreatePost = () => {
   return useMutation({
     mutationFn: (post: INewPost) => createPost(post),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_INFINITE_POSTS],
-      });
+      invalidatePostLists(queryClient);
     },
   });
 };
@@ -125,18 +127,9 @@ export const useUpdatePost = () => {
   return useMutation({
     mutationFn: (post: IUpdatePost) => updatePost(post),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_POST_BY_ID, data?.$id],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_INFINITE_POSTS],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_USER_POSTS],
-      });
+      invalidatePostDetail(queryClient, data?.$id);
+      invalidatePostLists(queryClient);
+      invalidateUserPosts(queryClient);
     },
   });
 };
@@ -147,15 +140,8 @@ export const useDeletePost = () => {
     mutationFn: ({ postId, imageId }: { postId?: string; imageId: string }) =>
       deletePost(postId, imageId),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_INFINITE_POSTS],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_USER_POSTS],
-      });
+      invalidatePostLists(queryClient);
+      invalidateUserPosts(queryClient);
     },
   });
 };
@@ -171,18 +157,9 @@ export const useLikePost = () => {
       likesArray: string[];
     }) => likePost(postId, likesArray),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_POST_BY_ID, data?.$id],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_INFINITE_POSTS],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_CURRENT_USER],
-      });
+      invalidatePostDetail(queryClient, data?.$id);
+      invalidatePostLists(queryClient);
+      invalidateCurrentUser(queryClient);
     },
   });
 };
@@ -193,15 +170,8 @@ export const useSavePost = () => {
     mutationFn: ({ userId, postId }: { userId: string; postId: string }) =>
       savePost(userId, postId),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_INFINITE_POSTS],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_CURRENT_USER],
-      });
+      invalidatePostLists(queryClient);
+      invalidateCurrentUser(queryClient);
     },
   });
 };
@@ -211,15 +181,8 @@ export const useDeleteSavedPost = () => {
   return useMutation({
     mutationFn: (savedRecordId: string) => deleteSavedPost(savedRecordId),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_RECENT_POSTS],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_INFINITE_POSTS],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_CURRENT_USER],
-      });
+      invalidatePostLists(queryClient);
+      invalidateCurrentUser(queryClient);
     },
   });
 };
@@ -255,12 +218,8 @@ export const useUpdateUser = () => {
   return useMutation({
     mutationFn: (user: IUpdateUser) => updateUser(user),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_CURRENT_USER],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.GET_USER_BY_ID, data?.$id],
-      });
+      invalidateCurrentUser(queryClient);
+      invalidateUserDetail(queryClient, data?.$id);
     },
   });
 };

@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import { Models } from "appwrite";
 import { useInView } from "react-intersection-observer";
 
 import { Input } from "@/components/ui";
+import { DocumentList, PostDocument } from "@/types";
 import useDebounce from "@/hooks/useDebounce";
 import { GridPostList, Loader } from "@/components/shared";
 import { useGetPosts, useSearchPosts } from "@/lib/react-query/queries";
 
 export type SearchResultProps = {
   isSearchFetching: boolean;
-  searchedPosts?: Models.DocumentList<Models.Document>;
+  searchedPosts?: DocumentList<PostDocument>;
 };
 
 const SearchResults = ({ isSearchFetching, searchedPosts }: SearchResultProps) => {

@@ -1,14 +1,10 @@
-import { Models } from "appwrite";
-
 import { GridPostList, Loader } from "@/components/shared";
 import { useGetCurrentUser } from "@/lib/react-query/queries";
 
 const Saved = () => {
   const { data: currentUser } = useGetCurrentUser();
 
-  const savePosts = currentUser?.save
-    .map((savePost: Models.Document) => savePost.post)
-    .reverse();
+  const savePosts = currentUser?.save?.map((savePost) => savePost.post).reverse() || [];
 
   return (
     <div className="saved-container">

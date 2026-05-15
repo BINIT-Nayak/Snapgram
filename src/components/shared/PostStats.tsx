@@ -1,7 +1,7 @@
-import { Models } from "appwrite";
 import { useMemo, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
+import { PostDocument } from "@/types";
 import { checkIsLiked } from "@/lib/utils";
 import {
   useLikePost,
@@ -11,14 +11,14 @@ import {
 } from "@/lib/react-query/queries";
 
 type PostStatsProps = {
-  post: Models.Document;
+  post: PostDocument;
   userId: string;
 };
 
 const PostStats = ({ post, userId }: PostStatsProps) => {
   const location = useLocation();
   const likesList = useMemo(
-    () => post.likes.map((user: Models.Document) => user.$id),
+    () => post.likes.map((user) => user.$id),
     [post.likes]
   );
 
@@ -31,8 +31,8 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
 
   const { data: currentUser } = useGetCurrentUser();
 
-  const savedPostRecord = currentUser?.save.find(
-    (record: Models.Document) => record.post.$id === post.$id
+  const savedPostRecord = currentUser?.save?.find(
+    (record) => record.post.$id === post.$id
   );
 
   useEffect(() => {

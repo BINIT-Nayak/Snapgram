@@ -1,13 +1,13 @@
-import { Models } from "appwrite";
 import { Link } from "react-router-dom";
 
 import { PostStats } from "@/components/shared";
+import { PostDocument } from "@/types";
 import { multiFormatDateString } from "@/lib/utils";
 import { useUserContext } from "@/context/AuthContext";
 import { getFilePreview } from "@/lib/appwrite/api";
 
 type PostCardProps = {
-  post: Models.Document;
+  post: PostDocument;
 };
 
 const PostCard = ({ post }: PostCardProps) => {
@@ -65,7 +65,7 @@ const PostCard = ({ post }: PostCardProps) => {
         <div className="small-medium lg:base-medium py-5">
           <p>{post.caption}</p>
           <ul className="flex gap-1 mt-2">
-            {post.tags.map((tag: string, index: string) => (
+            {post.tags.map((tag, index) => (
               <li key={`${tag}${index}`} className="text-light-3 small-regular">
                 #{tag}
               </li>

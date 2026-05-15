@@ -1,13 +1,23 @@
 import { Client, Account, Databases, Storage, Avatars } from "appwrite";
 
+const getRequiredEnv = (key: string) => {
+  const value = import.meta.env[key];
+
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+
+  return value;
+};
+
 export const appwriteConfig = {
-  url: import.meta.env.VITE_APPWRITE_URL,
-  projectId: import.meta.env.VITE_APPWRITE_PROJECT_ID,
-  databaseId: import.meta.env.VITE_APPWRITE_DATABASE_ID,
-  storageId: import.meta.env.VITE_APPWRITE_STORAGE_ID,
-  userCollectionId: import.meta.env.VITE_APPWRITE_USER_COLLECTION_ID,
-  postCollectionId: import.meta.env.VITE_APPWRITE_POST_COLLECTION_ID,
-  savesCollectionId: import.meta.env.VITE_APPWRITE_SAVES_COLLECTION_ID,
+  url: getRequiredEnv("VITE_APPWRITE_URL"),
+  projectId: getRequiredEnv("VITE_APPWRITE_PROJECT_ID"),
+  databaseId: getRequiredEnv("VITE_APPWRITE_DATABASE_ID"),
+  storageId: getRequiredEnv("VITE_APPWRITE_STORAGE_ID"),
+  userCollectionId: getRequiredEnv("VITE_APPWRITE_USER_COLLECTION_ID"),
+  postCollectionId: getRequiredEnv("VITE_APPWRITE_POST_COLLECTION_ID"),
+  savesCollectionId: getRequiredEnv("VITE_APPWRITE_SAVES_COLLECTION_ID"),
 };
 
 export const client = new Client();
