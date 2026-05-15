@@ -9,6 +9,7 @@ import {
   useGetUserPosts,
   useDeletePost,
 } from "@/lib/react-query/queries";
+import { getFilePreview } from "@/lib/appwrite/api";
 import { multiFormatDateString } from "@/lib/utils";
 import { useUserContext } from "@/context/AuthContext";
 
@@ -26,6 +27,9 @@ const PostDetails = () => {
   const relatedPosts = userPosts?.documents.filter(
     (userPost) => userPost.$id !== id
   );
+  const postImageUrl = post?.imageId
+    ? getFilePreview(post.imageId)?.toString()
+    : post?.imageUrl;
 
   const handleDeletePost = () => {
     deletePost({ postId: id, imageId: post?.imageId });
@@ -54,7 +58,7 @@ const PostDetails = () => {
       ) : (
         <div className="post_details-card">
           <img
-            src={post?.imageUrl}
+            src={postImageUrl}
             alt="creator"
             className="post_details-img"
           />

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { PostStats } from "@/components/shared";
 import { multiFormatDateString } from "@/lib/utils";
 import { useUserContext } from "@/context/AuthContext";
+import { getFilePreview } from "@/lib/appwrite/api";
 
 type PostCardProps = {
   post: Models.Document;
@@ -11,6 +12,9 @@ type PostCardProps = {
 
 const PostCard = ({ post }: PostCardProps) => {
   const { user } = useUserContext();
+  const postImageUrl = post.imageId
+    ? getFilePreview(post.imageId)?.toString()
+    : post.imageUrl;
 
   if (!post.creator) return;
 
@@ -70,7 +74,7 @@ const PostCard = ({ post }: PostCardProps) => {
         </div>
 
         <img
-          src={post.imageUrl || "/assets/icons/profile-placeholder.svg"}
+          src={postImageUrl || "/assets/icons/profile-placeholder.svg"}
           alt="post image"
           className="post-card_img"
         />

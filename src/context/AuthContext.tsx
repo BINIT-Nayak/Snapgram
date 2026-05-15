@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [user, setUser] = useState<IUser>(INITIAL_USER);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const checkAuthUser = async () => {
     setIsLoading(true);
@@ -60,6 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return false;
     } catch (error) {
       console.error(error);
+      setUser(INITIAL_USER);
+      setIsAuthenticated(false);
       return false;
     } finally {
       setIsLoading(false);
@@ -73,10 +75,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cookieFallback === null ||
       cookieFallback === undefined
     ) {
+      setUser(INITIAL_USER);
+      setIsAuthenticated(false);
+      setIsLoading(false);
       navigate("/sign-in");
+      return;
     }
 
-    checkAuthUser();
+    checkAuthUser().then((isLoggedIn) => {
+      if (!isLoggedIn) {
+        navigate("/sign-in");
+      }
+    });
   }, []);
 
   const value = {

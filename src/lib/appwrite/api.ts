@@ -1,4 +1,4 @@
-import { ID, Query } from "appwrite";
+import { ID, Permission, Query, Role } from "appwrite";
 
 import { appwriteConfig, account, databases, storage, avatars } from "./config";
 import { IUpdatePost, INewPost, INewUser, IUpdateUser } from "@/types";
@@ -66,6 +66,7 @@ export async function signInAccount(user: { email: string; password: string }) {
     return session;
   } catch (error) {
     console.log(error);
+    throw error;
   }
 }
 
@@ -123,17 +124,17 @@ export async function createPost(post: INewPost) {
     // Upload file to appwrite storage
     const uploadedFile = await uploadFile(post.file[0]);
 
-    if (!uploadedFile) throw Error;
+    if (!uploadedFile) throw Error("File upload failed.");
 
     // Get file url
     const fileUrl = getFilePreview(uploadedFile.$id);
     if (!fileUrl) {
       await deleteFile(uploadedFile.$id);
-      throw Error;
+      throw Error("Could not create file preview URL.");
     }
 
     // Convert tags into array
-    const tags = post.tags?.replace(/ /g, "").split(",") || [];
+    const tags = post.tags?.replace(/ /g, "").split(",").filter(Boolean) || [];
 
     // Create post
     const newPost = await databases.createDocument(
@@ -143,7 +144,7 @@ export async function createPost(post: INewPost) {
       {
         creator: post.userId,
         caption: post.caption,
-        imageUrl: fileUrl,
+        imageUrl: fileUrl.toString(),
         imageId: uploadedFile.$id,
         location: post.location,
         tags: tags,
@@ -152,40 +153,41 @@ export async function createPost(post: INewPost) {
 
     if (!newPost) {
       await deleteFile(uploadedFile.$id);
-      throw Error;
+      throw Error("Post creation failed.");
     }
 
     return newPost;
   } catch (error) {
     console.log(error);
+    throw error;
   }
 }
 
 // ============================== UPLOAD FILE
 export async function uploadFile(file: File) {
   try {
+    if (!file) throw Error("Please select an image before posting.");
+
     const uploadedFile = await storage.createFile(
       appwriteConfig.storageId,
       ID.unique(),
-      file
+      file,
+      [Permission.read(Role.any())]
     );
 
     return uploadedFile;
   } catch (error) {
     console.log(error);
+    throw error;
   }
 }
 
 // ============================== GET FILE URL
 export function getFilePreview(fileId: string) {
   try {
-    const fileUrl = storage.getFilePreview(
+    const fileUrl = storage.getFileView(
       appwriteConfig.storageId,
-      fileId,
-      2000,
-      2000,
-      "top",
-      100
+      fileId
     );
 
     if (!fileUrl) throw Error;
@@ -270,7 +272,7 @@ export async function updatePost(post: IUpdatePost) {
   const hasFileToUpdate = post.file.length > 0;
 
   try {
-    let image = {
+    let image: { imageUrl: string | URL; imageId: string } = {
       imageUrl: post.imageUrl,
       imageId: post.imageId,
     };
@@ -278,20 +280,20 @@ export async function updatePost(post: IUpdatePost) {
     if (hasFileToUpdate) {
       // Upload new file to appwrite storage
       const uploadedFile = await uploadFile(post.file[0]);
-      if (!uploadedFile) throw Error;
+      if (!uploadedFile) throw Error("File upload failed.");
 
       // Get new file url
       const fileUrl = getFilePreview(uploadedFile.$id);
       if (!fileUrl) {
         await deleteFile(uploadedFile.$id);
-        throw Error;
+        throw Error("Could not create file preview URL.");
       }
 
-      image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id };
+      image = { ...image, imageUrl: fileUrl.toString(), imageId: uploadedFile.$id };
     }
 
     // Convert tags into array
-    const tags = post.tags?.replace(/ /g, "").split(",") || [];
+    const tags = post.tags?.replace(/ /g, "").split(",").filter(Boolean) || [];
 
     //  Update post
     const updatedPost = await databases.updateDocument(
@@ -300,7 +302,7 @@ export async function updatePost(post: IUpdatePost) {
       post.postId,
       {
         caption: post.caption,
-        imageUrl: image.imageUrl,
+        imageUrl: image.imageUrl.toString(),
         imageId: image.imageId,
         location: post.location,
         tags: tags,
@@ -315,7 +317,7 @@ export async function updatePost(post: IUpdatePost) {
       }
 
       // If no new file uploaded, just throw error
-      throw Error;
+      throw Error("Post update failed.");
     }
 
     // Safely delete old file after successful update
@@ -326,6 +328,7 @@ export async function updatePost(post: IUpdatePost) {
     return updatedPost;
   } catch (error) {
     console.log(error);
+    throw error;
   }
 }
 
