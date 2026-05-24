@@ -42,7 +42,17 @@ export async function saveUserToDB(user: {
 }
 
 export async function signInAccount(user: { email: string; password: string }) {
-  return account.createEmailSession(user.email, user.password);
+  try {
+    return await account.createEmailSession(user.email, user.password);
+  } catch (error) {
+    const appwriteError = error as { type?: string };
+
+    if (appwriteError.type === "user_session_already_exists") {
+      return account.getSession("current");
+    }
+
+    throw error;
+  }
 }
 
 export async function getAccount() {
