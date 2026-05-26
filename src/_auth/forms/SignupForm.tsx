@@ -77,19 +77,30 @@ const SignupForm = () => {
 
   return (
     <Form {...form}>
-      <div className="auth-panel flex-center flex-col">
-        <img src="/assets/images/logo.svg" alt="logo" className="auth-logo" />
+      <div className="auth-panel">
+        <div className="auth-form_header">
+          <img src="/assets/images/logo.svg" alt="logo" className="auth-logo" />
 
-        <h2 className="page-title h3-bold md:h2-bold pt-5 sm:pt-12">
-          Create a new account
-        </h2>
-        <p className="text-light-3 small-medium md:base-regular mt-2">
-          To use snapgram, Please enter your details
-        </p>
+          <div>
+            <p className="auth-kicker">Start creating</p>
+            <h2 className="page-title h3-bold md:h2-bold">
+              Join Snapgram
+            </h2>
+            <p className="text-light-3 small-medium md:base-regular mt-2">
+              Create your space, follow creators, and save what inspires you.
+            </p>
+          </div>
+        </div>
+
+        <div className="auth-benefits">
+          <span>Fast setup</span>
+          <span>Visual feed</span>
+          <span>Private saves</span>
+        </div>
 
         <form
           onSubmit={form.handleSubmit(handleSignup)}
-          className="flex flex-col gap-5 w-full mt-4">
+          className="flex flex-col gap-5 w-full mt-6">
           <FormField
             control={form.control}
             name="name"
@@ -97,7 +108,12 @@ const SignupForm = () => {
               <FormItem>
                 <FormLabel className="shad-form_label">Name</FormLabel>
                 <FormControl>
-                  <Input type="text" className="shad-input" {...field} />
+                  <Input
+                    type="text"
+                    placeholder="Alex Morgan"
+                    className="shad-input auth-input"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -111,7 +127,12 @@ const SignupForm = () => {
               <FormItem>
                 <FormLabel className="shad-form_label">Username</FormLabel>
                 <FormControl>
-                  <Input type="text" className="shad-input" {...field} />
+                  <Input
+                    type="text"
+                    placeholder="alexcreates"
+                    className="shad-input auth-input"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -125,7 +146,12 @@ const SignupForm = () => {
               <FormItem>
                 <FormLabel className="shad-form_label">Email</FormLabel>
                 <FormControl>
-                  <Input type="text" className="shad-input" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    className="shad-input auth-input"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -139,7 +165,12 @@ const SignupForm = () => {
               <FormItem>
                 <FormLabel className="shad-form_label">Password</FormLabel>
                 <FormControl>
-                  <Input type="password" className="shad-input" {...field} />
+                  <Input
+                    type="password"
+                    placeholder="Create a strong password"
+                    className="shad-input auth-input"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -148,7 +179,7 @@ const SignupForm = () => {
 
           <Button
             type="submit"
-            className="shad-button_primary"
+            className="shad-button_primary auth-submit"
             disabled={isCreatingAccount || isSigningInUser || isUserLoading}>
             {isCreatingAccount || isSigningInUser || isUserLoading ? (
               <div className="flex-center gap-2">
@@ -159,11 +190,11 @@ const SignupForm = () => {
             )}
           </Button>
 
-          <p className="text-small-regular text-light-2 text-center mt-2">
+          <p className="small-regular text-light-2 text-center mt-2">
             Already have an account?
             <Link
               to="/sign-in"
-              className="text-primary-500 text-small-semibold ml-1">
+              className="auth-link ml-1">
               Log in
             </Link>
           </p>
