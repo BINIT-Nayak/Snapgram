@@ -154,6 +154,11 @@ src/
   types/                 Form, navigation, and Appwrite document types
 ```
 
+## Design Docs
+
+- [High-Level Design](./docs/HLD.md)
+- [Low-Level Design](./docs/LLD.md)
+
 ## Appwrite API Modules
 
 The Appwrite integration is split by domain:
