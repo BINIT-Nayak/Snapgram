@@ -4,6 +4,8 @@ Snapgram is a social media web app built with React, TypeScript, Appwrite, React
 
 The app supports authentication, creating and editing posts, image uploads, feed browsing, profile pages, likes, saves, search, and responsive navigation.
 
+LIVE: https://snapgram-two-kappa.vercel.app/
+
 ## Tech Stack
 
 - React 18
@@ -186,6 +188,14 @@ Toast is split into:
 - `toaster.tsx`: renderer mounted once in `App.tsx`
 
 See `src/components/ui/README.md` for details.
+
+## Images
+<img width="500" height="500" alt="Screenshot 2026-06-04 at 8 03 51 PM" src="https://github.com/user-attachments/assets/de90f2e1-11cb-488c-8611-7d9226bc239f" />
+<img width="506" height="500" alt="Screenshot 2026-06-04 at 8 05 40 PM" src="https://github.com/user-attachments/assets/9db5fdf5-be3f-4e52-b589-affe58d5432f" />
+<img width="500" height="500" alt="Screenshot 2026-06-04 at 8 06 11 PM" src="https://github.com/user-attachments/assets/eb6906f5-45d4-4a03-be06-31873d8b9c32" />
+<img width="500" height="500" alt="Screenshot 2026-06-04 at 8 06 41 PM" src="https://github.com/user-attachments/assets/bf9e87e9-f10f-4743-874a-ba9580fc519f" />
+<img width="500" height="500" alt="Screenshot 2026-06-04 at 8 07 08 PM" src="https://github.com/user-attachments/assets/284df66f-3181-4a8a-bf4f-4cd982e088ba" />
+
 
 ## Quality Checks
 
