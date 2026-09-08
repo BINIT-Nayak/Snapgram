@@ -24,8 +24,8 @@ const PerformanceImage = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const imageSrc = src || "/assets/icons/profile-placeholder.svg";
   const priorityProps = {
-    fetchPriority: eager ? "high" : "auto",
-  } as { fetchPriority: ImageFetchPriority };
+    fetchpriority: eager ? "high" : "auto",
+  } as { fetchpriority: ImageFetchPriority };
 
   return (
     <span

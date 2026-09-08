@@ -78,6 +78,14 @@ src/
     forms.ts
     index.ts
     navigation.ts
+tests/
+  components/
+  integration/
+  msw/
+  unit/
+  utils/
+e2e/
+  critical-user-flow.spec.ts
 ```
 
 ## 2. Runtime Bootstrap
@@ -554,7 +562,27 @@ Critical detail: `file` uses `z.custom<File[]>()`, so "file required" is enforce
 | Optimistic UI | Likes/saves roll back React Query cache snapshots; follows roll back local button state on failure. |
 | Storage cleanup | New uploads are deleted if URL/document update fails; old files are deleted after successful replacement. |
 
-## 13. Feed Performance
+## 13. Testing Layer
+
+| Test Area | Tooling | Coverage |
+| --- | --- | --- |
+| Unit | Vitest | Zod schemas, utility helpers, debounce hook. |
+| Component | Vitest, React Testing Library | Auth guards, `PostCard`, `PostStats`, `FollowButton`, `FileUploader`, `PerformanceImage`. |
+| Integration | Vitest, React Testing Library | Optimistic like/save cache rollback and create-post submission/cache invalidation. |
+| Network mocks | MSW | Browser request interception for integration tests. |
+| E2E | Playwright | Credential-backed login, create post, like, save, logout journey. |
+
+### Test Commands
+
+```bash
+npm run test
+npm run test:e2e
+npm run test:all
+```
+
+`npm run test:e2e` starts the Vite dev server through Playwright. The E2E scenario is skipped unless `E2E_USER_EMAIL` and `E2E_USER_PASSWORD` are available, because it exercises the real Appwrite-backed application.
+
+## 14. Feed Performance
 
 ### Home Feed Virtualization
 
@@ -608,7 +636,7 @@ flowchart TD
 
 The component relies on stable CSS dimensions from the caller, such as `post-card_img`, `grid-post_link`, `saved-card_img`, and `post_details-img`, to reserve layout space before the image finishes loading.
 
-## 14. Important Algorithms
+## 15. Important Algorithms
 
 ### Tag Parsing
 
@@ -644,7 +672,7 @@ Output:
 3. Build searchable text from caption, location, creator name, creator username, and tags.
 4. Return posts whose normalized text contains the normalized search term.
 
-## 15. Detailed Flow Charts
+## 16. Detailed Flow Charts
 
 ### Signup Flow
 
@@ -938,7 +966,7 @@ flowchart TD
   SetContext --> Navigate
 ```
 
-## 16. Permissions And Security Requirements
+## 17. Permissions And Security Requirements
 
 Appwrite must allow authenticated users to read and write the required collections. Storage uploads are created with public read permission so images are visible in the browser.
 
@@ -949,7 +977,7 @@ Recommended production hardening:
 - Users should only create/delete their own save records.
 - Array fields such as `likes`, `followers`, and `following` need careful permissions or server-side functions if stronger consistency is required.
 
-## 17. Edge Cases
+## 18. Edge Cases
 
 | Case | Current Behavior |
 | --- | --- |
@@ -966,7 +994,7 @@ Recommended production hardening:
 | User views own profile | Edit and liked-posts tab are visible. |
 | User views another profile | Follow/unfollow button is visible. |
 
-## 18. Known Limitations
+## 19. Known Limitations
 
 - No comments or messaging.
 - No real-time subscriptions.
@@ -978,7 +1006,7 @@ Recommended production hardening:
 - UI owner checks must be backed by Appwrite permissions to be secure.
 - Responsive `sizes` hints are present, but Appwrite file view URLs do not currently generate multiple image widths.
 
-## 19. Suggested Future Improvements
+## 20. Suggested Future Improvements
 
 - Move likes/follows to separate collections for better concurrency.
 - Add Appwrite Functions for sensitive writes.

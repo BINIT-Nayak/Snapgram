@@ -41,6 +41,8 @@ The application is a single-page React app backed by Appwrite for authentication
 | Auth | Appwrite Account email/password sessions |
 | Database | Appwrite Databases |
 | File storage | Appwrite Storage |
+| Unit/integration testing | Vitest, React Testing Library, MSW |
+| E2E testing | Playwright |
 | Deployment target | Vercel-compatible static build |
 
 ## 5. System Context
@@ -494,7 +496,27 @@ The home feed combines server pagination with DOM virtualization. Image-heavy su
 
 Important: UI hiding is not a complete security boundary. Appwrite collection permissions must prevent unauthorized document updates/deletes.
 
-## 16. Deployment View
+## 16. Testing Strategy
+
+```mermaid
+flowchart TD
+  Unit[Unit tests]
+  Component[Component tests]
+  Integration[Integration tests]
+  MSW[MSW request mocking]
+  E2E[Playwright E2E]
+  Gate[npm run test:all]
+
+  Unit --> Gate
+  Component --> Gate
+  Integration --> Gate
+  MSW --> Integration
+  E2E --> ManualE2E[Credential-backed E2E run]
+```
+
+The test layer focuses on high-risk user-facing behavior rather than raw test count. Vitest and React Testing Library cover validation, auth guards, components, file upload, debounce behavior, optimistic cache rollback, and create-post cache invalidation. Playwright provides a credential-backed smoke journey for login, create post, like, save, and logout.
+
+## 17. Deployment View
 
 ```mermaid
 flowchart LR
@@ -514,7 +536,7 @@ flowchart LR
 
 The app builds to static assets through Vite. Runtime backend calls go directly from the browser to Appwrite using environment-injected project and collection IDs.
 
-## 17. High-Level Risks And Tradeoffs
+## 18. High-Level Risks And Tradeoffs
 
 - The frontend talks directly to Appwrite, so permissions must be precise.
 - Likes and follows are stored as arrays, which is simple but can suffer race conditions when multiple users update the same document concurrently.

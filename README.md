@@ -19,6 +19,10 @@ LIVE: https://snapgram-two-kappa.vercel.app/
 - Zod
 - Tailwind CSS
 - Radix UI primitives
+- Vitest
+- React Testing Library
+- MSW
+- Playwright
 
 ## Getting Started
 
@@ -56,6 +60,24 @@ Run lint checks:
 
 ```bash
 npm run lint
+```
+
+Run unit and integration tests:
+
+```bash
+npm run test
+```
+
+Run the Playwright E2E suite:
+
+```bash
+npm run test:e2e
+```
+
+Run the main quality gate:
+
+```bash
+npm run test:all
 ```
 
 Preview the production build:
@@ -170,6 +192,16 @@ Snapgram treats feed performance as a core frontend feature:
 - TanStack Virtual keeps the home feed DOM bounded as users scroll.
 - Post images use lazy loading, async decoding, reserved dimensions, skeleton loading, blur-up transitions, responsive `sizes`, and high fetch priority for the first visible image.
 - Feed, detail, profile, search, and saved-post surfaces share the same optimized image component.
+
+## Testing
+
+Snapgram includes unit, integration, and E2E coverage for critical user flows:
+
+- Vitest and React Testing Library cover validation, auth guards, post cards, file upload, follow controls, optimized images, and debounce behavior.
+- Integration tests verify React Query optimistic cache updates for likes/saves with rollback on API failure.
+- The create-post integration test covers image selection, form submission, mutation payloads, cache invalidation, and redirect behavior.
+- MSW is configured for browser-level request mocking in integration tests.
+- Playwright covers the real user journey: login, create post, like, save, and logout. It is skipped until `E2E_USER_EMAIL` and `E2E_USER_PASSWORD` are provided.
 
 ## Appwrite API Modules
 
