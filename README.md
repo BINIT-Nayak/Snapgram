@@ -13,6 +13,7 @@ LIVE: https://snapgram-two-kappa.vercel.app/
 - Vite
 - Appwrite
 - TanStack React Query
+- TanStack Virtual
 - React Router
 - React Hook Form
 - Zod
@@ -160,6 +161,15 @@ src/
 
 - [High-Level Design](./docs/HLD.md)
 - [Low-Level Design](./docs/LLD.md)
+
+## Feed Performance
+
+Snapgram treats feed performance as a core frontend feature:
+
+- Cursor-based fetching keeps network payloads bounded.
+- TanStack Virtual keeps the home feed DOM bounded as users scroll.
+- Post images use lazy loading, async decoding, reserved dimensions, skeleton loading, blur-up transitions, responsive `sizes`, and high fetch priority for the first visible image.
+- Feed, detail, profile, search, and saved-post surfaces share the same optimized image component.
 
 ## Appwrite API Modules
 

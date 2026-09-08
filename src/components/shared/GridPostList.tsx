@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-import { PostStats } from "@/components/shared";
+import { PerformanceImage, PostStats } from "@/components/shared";
 import { PostDocument } from "@/types";
 import { useUserContext } from "@/context/AuthContext";
 import { getFilePreview } from "@/lib/appwrite/api";
@@ -9,21 +9,23 @@ type GridPostListProps = {
   posts: PostDocument[];
   showUser?: boolean;
   showStats?: boolean;
+  priorityFirst?: boolean;
 };
 
 const GridPostList = ({
   posts,
   showUser = true,
   showStats = true,
+  priorityFirst = false,
 }: GridPostListProps) => {
   const { user } = useUserContext();
 
   return (
     <ul className="grid-container">
-      {posts.map((post) => (
+      {posts.map((post, index) => (
         <li key={post.$id} className="relative min-w-80 h-80">
           <Link to={`/posts/${post.$id}`} className="grid-post_link">
-            <img
+            <PerformanceImage
               src={
                 post.imageId
                   ? getFilePreview(post.imageId)?.toString()
@@ -31,6 +33,9 @@ const GridPostList = ({
               }
               alt="post"
               className="h-full w-full object-cover"
+              wrapperClassName="h-full w-full"
+              eager={priorityFirst && index === 0}
+              sizes="(max-width: 640px) calc(100vw - 40px), (max-width: 1280px) 50vw, 33vw"
             />
           </Link>
 

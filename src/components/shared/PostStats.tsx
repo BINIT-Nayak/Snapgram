@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
 
 import { PostDocument } from "@/types";
@@ -22,12 +22,10 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
     [post.likes]
   );
 
-  const [likes, setLikes] = useState<string[]>(likesList);
-  const [isSaved, setIsSaved] = useState(false);
-
-  const { mutate: likePost } = useLikePost();
-  const { mutate: savePost } = useSavePost();
-  const { mutate: deleteSavePost } = useDeleteSavedPost();
+  const { mutate: likePost, isLoading: isLikingPost } = useLikePost();
+  const { mutate: savePost, isLoading: isSavingPost } = useSavePost();
+  const { mutate: deleteSavePost, isLoading: isDeletingSavedPost } =
+    useDeleteSavedPost();
 
   const { data: currentUser } = useGetCurrentUser();
 
@@ -37,22 +35,15 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
 
     return savedPostId === post.$id;
   });
-
-  useEffect(() => {
-    setIsSaved(!!savedPostRecord);
-  }, [savedPostRecord]);
-
-  useEffect(() => {
-    setLikes(likesList);
-  }, [likesList]);
+  const isSaved = !!savedPostRecord;
+  const isLiked = checkIsLiked(likesList, userId);
 
   const handleLikePost = (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
     e.stopPropagation();
 
-    const previousLikes = likes;
-    let likesArray = [...likes];
+    let likesArray = [...likesList];
 
     if (likesArray.includes(userId)) {
       likesArray = likesArray.filter((Id) => Id !== userId);
@@ -60,15 +51,7 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
       likesArray.push(userId);
     }
 
-    setLikes(likesArray);
-    likePost(
-      { postId: post.$id, likesArray },
-      {
-        onError: () => {
-          setLikes(previousLikes);
-        },
-      }
-    );
+    likePost({ postId: post.$id, likesArray, userId, post });
   };
 
   const handleSavePost = (
@@ -77,23 +60,13 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
     e.stopPropagation();
 
     if (savedPostRecord) {
-      setIsSaved(false);
-      return deleteSavePost(savedPostRecord.$id, {
-        onError: () => {
-          setIsSaved(true);
-        },
+      return deleteSavePost({
+        savedRecordId: savedPostRecord.$id,
+        postId: post.$id,
       });
     }
 
-    setIsSaved(true);
-    savePost(
-      { userId: userId, postId: post.$id },
-      {
-        onError: () => {
-          setIsSaved(false);
-        },
-      }
-    );
+    savePost({ userId: userId, postId: post.$id, post });
   };
 
   const containerStyles = location.pathname.startsWith("/profile")
@@ -106,16 +79,15 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
       <div className="flex gap-2 mr-5 items-center">
         <button
           type="button"
-          aria-label={checkIsLiked(likes, userId) ? "Unlike post" : "Like post"}
+          aria-label={isLiked ? "Unlike post" : "Like post"}
+          disabled={isLikingPost}
           onClick={(e) => handleLikePost(e)}
           className={`post-action-btn ${
-            checkIsLiked(likes, userId) ? "post-action-btn_liked" : ""
+            isLiked ? "post-action-btn_liked" : ""
           }`}>
           <img
             src={
-              checkIsLiked(likes, userId)
-                ? "/assets/icons/liked.svg"
-                : "/assets/icons/like.svg"
+              isLiked ? "/assets/icons/liked.svg" : "/assets/icons/like.svg"
             }
             alt=""
             width={20}
@@ -124,7 +96,7 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
           />
         </button>
         <p className="small-semibold lg:base-medium text-light-2">
-          {likes.length}
+          {likesList.length}
         </p>
       </div>
 
@@ -132,6 +104,7 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
         <button
           type="button"
           aria-label={isSaved ? "Remove saved post" : "Save post"}
+          disabled={isSavingPost || isDeletingSavedPost}
           onClick={(e) => handleSavePost(e)}
           className={`post-action-btn ${
             isSaved ? "post-action-btn_saved" : ""

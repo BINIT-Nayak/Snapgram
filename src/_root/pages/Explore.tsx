@@ -1,10 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useInView } from "react-intersection-observer";
 
 import { Input } from "@/components/ui";
 import { DocumentList, PostDocument } from "@/types";
 import useDebounce from "@/hooks/useDebounce";
-import { ErrorState, GridPostList, Loader } from "@/components/shared";
+import {
+  ErrorState,
+  GridPostList,
+  Loader,
+  VirtualPostGrid,
+} from "@/components/shared";
 import { useGetPosts, useSearchPosts } from "@/lib/react-query/queries";
 
 type ExploreFilter = "all" | "liked" | "latest";
@@ -41,6 +46,7 @@ const SearchResults = ({
 };
 
 const Explore = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { ref, inView } = useInView();
   const {
     data: posts,
@@ -76,7 +82,7 @@ const Explore = () => {
 
   if (isPostsError) {
     return (
-      <div className="explore-container">
+      <div className="explore-container" ref={scrollRef}>
         <ErrorState
           message="Could not load explore posts."
           onRetry={() => refetchPosts()}
@@ -107,7 +113,7 @@ const Explore = () => {
     !shouldShowSearchResults && visiblePosts.length === 0;
 
   return (
-    <div className="explore-container">
+    <div className="explore-container" ref={scrollRef}>
       <div className="explore-inner_container">
         <h2 className="h3-bold md:h2-bold w-full">Search Posts</h2>
         <div className="explore-searchbar">
@@ -172,7 +178,11 @@ const Explore = () => {
         ) : shouldShowPosts ? (
           <p className="text-light-4 mt-10 text-center w-full">End of posts</p>
         ) : (
-          <GridPostList posts={visiblePosts} />
+          <VirtualPostGrid
+            posts={visiblePosts}
+            scrollRef={scrollRef}
+            priorityFirst
+          />
         )}
       </div>
 

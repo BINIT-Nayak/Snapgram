@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui";
 import { Loader } from "@/components/shared";
-import { GridPostList, PostStats } from "@/components/shared";
+import { GridPostList, PerformanceImage, PostStats } from "@/components/shared";
 
 import {
   useGetPostById,
@@ -59,10 +59,13 @@ const PostDetails = () => {
         <Loader />
       ) : (
         <div className="post_details-card">
-          <img
+          <PerformanceImage
             src={postImageUrl}
             alt="creator"
-            className="post_details-img"
+            className="post_details-img w-full xl:w-full"
+            wrapperClassName="w-full xl:w-[48%]"
+            eager
+            sizes="(max-width: 1280px) calc(100vw - 40px), 480px"
           />
 
           <div className="post_details-info">
@@ -155,7 +158,7 @@ const PostDetails = () => {
         {isUserPostLoading || !relatedPosts ? (
           <Loader />
         ) : (
-          <GridPostList posts={relatedPosts} />
+          <GridPostList posts={relatedPosts} priorityFirst />
         )}
       </div>
     </div>

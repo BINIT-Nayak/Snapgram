@@ -14,6 +14,7 @@ The application is a single-page React app backed by Appwrite for authentication
 - Support post creation, editing, deletion, likes, saves, and search.
 - Support user profiles, profile updates, followers, and following.
 - Keep the UI responsive across desktop and mobile layouts.
+- Keep feed network usage, image loading, layout shift, and mounted DOM nodes bounded.
 - Keep server state fresh using React Query cache invalidation.
 
 ## 3. Non-Goals
@@ -31,6 +32,7 @@ The application is a single-page React app backed by Appwrite for authentication
 | Frontend | React 18, TypeScript, Vite |
 | Routing | React Router |
 | Server-state cache | TanStack React Query |
+| Feed virtualization | TanStack Virtual |
 | Forms | React Hook Form |
 | Validation | Zod |
 | Styling | Tailwind CSS |
@@ -253,12 +255,13 @@ sequenceDiagram
   participant RQ as React Query
 
   User->>Stats: Click like
-  Stats->>Stats: Optimistically update local likes
+  Stats->>RQ: Snapshot affected query caches
+  Stats->>RQ: Optimistically update cached post likes
   Stats->>DB: Update post.likes array
   alt Success
     Stats->>RQ: Invalidate post detail, lists, current user
   else Error
-    Stats->>Stats: Roll back local likes
+    Stats->>RQ: Restore previous query snapshots
   end
 ```
 
@@ -453,7 +456,35 @@ Reads are keyed by query keys such as:
 
 Mutations invalidate related queries after success. This keeps feeds, profiles, saved posts, and current user relationships reasonably fresh without manual prop drilling.
 
-## 14. Security Model
+## 14. Feed Performance Strategy
+
+```mermaid
+flowchart TD
+  InfiniteQuery[React Query cursor pagination]
+  Pages[Loaded pages]
+  Flatten[Flattened post list]
+  Virtualizer[TanStack Virtual home feed]
+  Mounted[Only visible post cards mounted]
+  Image[PerformanceImage]
+  Lazy[Lazy loading and async decoding]
+  Reserve[Reserved image dimensions prevent CLS]
+  Priority[First visible image gets high priority]
+  Reconcile[React Query cache reconciliation]
+
+  InfiniteQuery --> Pages
+  Pages --> Flatten
+  Flatten --> Virtualizer
+  Virtualizer --> Mounted
+  Mounted --> Image
+  Image --> Lazy
+  Image --> Reserve
+  Image --> Priority
+  Mounted --> Reconcile
+```
+
+The home feed combines server pagination with DOM virtualization. Image-heavy surfaces use a shared `PerformanceImage` component that reserves layout space, shows a skeleton and blur-up transition while loading, uses native lazy loading for non-priority images, and marks the first visible feed/detail image as high priority.
+
+## 15. Security Model
 
 - Auth is delegated to Appwrite Account sessions.
 - Protected routes rely on `AuthContext` and Appwrite session checks.
@@ -463,7 +494,7 @@ Mutations invalidate related queries after success. This keeps feeds, profiles, 
 
 Important: UI hiding is not a complete security boundary. Appwrite collection permissions must prevent unauthorized document updates/deletes.
 
-## 15. Deployment View
+## 16. Deployment View
 
 ```mermaid
 flowchart LR
@@ -483,7 +514,7 @@ flowchart LR
 
 The app builds to static assets through Vite. Runtime backend calls go directly from the browser to Appwrite using environment-injected project and collection IDs.
 
-## 16. High-Level Risks And Tradeoffs
+## 17. High-Level Risks And Tradeoffs
 
 - The frontend talks directly to Appwrite, so permissions must be precise.
 - Likes and follows are stored as arrays, which is simple but can suffer race conditions when multiple users update the same document concurrently.
@@ -491,3 +522,4 @@ The app builds to static assets through Vite. Runtime backend calls go directly 
 - Search depends on Appwrite full-text search on `caption`; fallback search only scans the latest 50 posts.
 - Auth state depends partly on Appwrite's `cookieFallback` localStorage behavior before calling `getCurrentUser`.
 - Public file read permissions make image rendering simple but may not fit private-media requirements.
+- Home feed virtualization uses estimated row heights and runtime measurement; large caption/image variations should be checked for scroll smoothness.

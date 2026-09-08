@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-import { Loader } from "@/components/shared";
+import { Loader, PerformanceImage } from "@/components/shared";
 import { useUserContext } from "@/context/AuthContext";
 import { useGetSavedPosts } from "@/lib/react-query/queries";
 import { getFilePreview } from "@/lib/appwrite/api";
@@ -79,12 +79,15 @@ const Saved = () => {
                 return (
                   <li key={post.$id}>
                     <Link to={`/posts/${post.$id}`} className="saved-card">
-                      <img
+                      <PerformanceImage
                         src={
                           postImageUrl || "/assets/icons/profile-placeholder.svg"
                         }
                         alt="saved post"
                         className="saved-card_img"
+                        wrapperClassName="w-full"
+                        eager={false}
+                        sizes="(max-width: 768px) calc(100vw - 40px), 190px"
                       />
 
                       <div className="saved-card_info">

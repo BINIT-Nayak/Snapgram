@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-import { PostStats } from "@/components/shared";
+import { PerformanceImage, PostStats } from "@/components/shared";
 import { PostDocument } from "@/types";
 import { multiFormatDateString } from "@/lib/utils";
 import { useUserContext } from "@/context/AuthContext";
@@ -8,9 +8,10 @@ import { getFilePreview } from "@/lib/appwrite/api";
 
 type PostCardProps = {
   post: PostDocument;
+  eagerImage?: boolean;
 };
 
-const PostCard = ({ post }: PostCardProps) => {
+const PostCard = ({ post, eagerImage = false }: PostCardProps) => {
   const { user } = useUserContext();
   const postImageUrl = post.imageId
     ? getFilePreview(post.imageId)?.toString()
@@ -81,10 +82,13 @@ const PostCard = ({ post }: PostCardProps) => {
           </ul>
         </div>
 
-        <img
+        <PerformanceImage
           src={postImageUrl || "/assets/icons/profile-placeholder.svg"}
           alt="post image"
           className="post-card_img"
+          wrapperClassName="w-full"
+          eager={eagerImage}
+          sizes="(max-width: 640px) calc(100vw - 40px), 640px"
         />
       </Link>
 

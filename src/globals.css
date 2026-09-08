@@ -210,6 +210,49 @@
     @apply rounded-2xl border border-dark-4 bg-dark-3 px-5 py-3 shadow-lg shadow-black transition duration-300 hover:-translate-y-1 hover:border-primary-500;
   }
 
+  .performance-image_frame {
+    @apply relative block overflow-hidden bg-cover bg-center;
+  }
+
+  .performance-image_frame::before {
+    @apply pointer-events-none absolute inset-0 z-0 backdrop-blur-xl content-[''];
+    background: rgba(16, 16, 24, 0.42);
+  }
+
+  .performance-image {
+    @apply relative z-10 block transition duration-500;
+  }
+
+  .performance-image_loading {
+    @apply opacity-0 blur-xl scale-[1.02];
+  }
+
+  .performance-image_loaded {
+    @apply opacity-100 blur-0 scale-100;
+  }
+
+  .performance-image_skeleton {
+    @apply absolute inset-0 z-20 animate-pulse;
+    background: linear-gradient(
+      110deg,
+      rgba(21, 21, 31, 0.95) 8%,
+      rgba(55, 55, 74, 0.95) 18%,
+      rgba(21, 21, 31, 0.95) 33%
+    );
+    background-size: 200% 100%;
+    animation: image-skeleton 1.25s ease-in-out infinite;
+  }
+
+  @keyframes image-skeleton {
+    0% {
+      background-position: 100% 0;
+    }
+
+    100% {
+      background-position: -100% 0;
+    }
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 3px;
     height: 3px;
@@ -375,6 +418,22 @@
 
   .home-posts {
     @apply max-w-screen-sm flex flex-col items-center w-full gap-6 md:gap-9;
+  }
+
+  .virtual-feed {
+    @apply relative w-full;
+  }
+
+  .virtual-feed_item {
+    @apply absolute left-0 top-0 flex w-full justify-center pb-9;
+  }
+
+  .virtual-grid {
+    @apply relative w-full max-w-5xl;
+  }
+
+  .virtual-grid_row {
+    @apply absolute left-0 top-0 w-full pb-7;
   }
 
   .home-creators {

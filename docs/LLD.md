@@ -39,6 +39,7 @@ src/
       InlineSpinner.tsx
       LeftSidebar.tsx
       Loader.tsx
+      PerformanceImage.tsx
       PostCard.tsx
       PostStats.tsx
       ProfileUploader.tsx
@@ -364,9 +365,9 @@ Responsibilities:
 
 - Derive likes array from `post.likes`.
 - Fetch current user to check saved state.
-- Optimistically update like state.
-- Optimistically update save state.
-- Roll back local state on mutation failure.
+- Trigger React Query cache-level optimistic like updates.
+- Trigger React Query cache-level optimistic save updates.
+- Rely on mutation rollback snapshots when Appwrite writes fail.
 
 Key behavior:
 
@@ -376,18 +377,20 @@ flowchart TD
   HasLiked{User ID in likes?}
   Remove[Remove user ID]
   Add[Add user ID]
-  Local[Update local state]
+  Snapshot[Snapshot affected query caches]
+  Cache[Update React Query post caches]
   Mutate[Update post document]
   Error{Error?}
-  Rollback[Restore previous likes]
+  Rollback[Restore previous query snapshots]
   Done[Invalidate caches]
 
   Click --> HasLiked
   HasLiked -->|Yes| Remove
   HasLiked -->|No| Add
-  Remove --> Local
-  Add --> Local
-  Local --> Mutate
+  Remove --> Snapshot
+  Add --> Snapshot
+  Snapshot --> Cache
+  Cache --> Mutate
   Mutate --> Error
   Error -->|Yes| Rollback
   Error -->|No| Done
@@ -415,6 +418,19 @@ Responsibilities:
 
 Same basic dropzone behavior as `FileUploader`, but styled for round profile images.
 
+### `PerformanceImage`
+
+Responsibilities:
+
+- Render optimized post images across feed, grids, saved posts, and details.
+- Use `loading="lazy"` for non-priority images.
+- Use `decoding="async"`.
+- Use `fetchPriority="high"` for first visible/detail images.
+- Provide a `sizes` hint for responsive layout contexts.
+- Reserve image dimensions through existing image classes to reduce CLS.
+- Show a skeleton and blurred background while the image is loading.
+- Fade from blurred placeholder to the decoded image on load.
+
 ### Navigation Components
 
 | Component | Usage |
@@ -431,12 +447,21 @@ Data:
 
 - `useGetRecentPosts()`
 - `useGetUsers(10)`
+- `useVirtualizer()` over the loaded post list
 
 UI:
 
-- Feed list of `PostCard`.
+- Virtualized feed list of `PostCard`.
 - Creator rail of `UserCard`.
 - Separate error states for posts and creators.
+
+Performance behavior:
+
+- `home-container` is the virtualizer scroll element.
+- `estimateSize` reserves each post row before measurement.
+- `measureElement` updates row size after rendering.
+- `overscan` keeps a small buffer of cards mounted above and below the viewport.
+- The first visible post image is loaded eagerly with high fetch priority.
 
 ### Explore
 
@@ -526,10 +551,64 @@ Critical detail: `file` uses `z.custom<File[]>()`, so "file required" is enforce
 | Forms | `try/catch` around async submit, errors shown by toast. |
 | Queries | Page-level `ErrorState` with retry callbacks. |
 | Mutations | Toast messages and React Query invalidation. |
-| Optimistic UI | Likes/saves/follows roll back local state on failure. |
+| Optimistic UI | Likes/saves roll back React Query cache snapshots; follows roll back local button state on failure. |
 | Storage cleanup | New uploads are deleted if URL/document update fails; old files are deleted after successful replacement. |
 
-## 13. Important Algorithms
+## 13. Feed Performance
+
+### Home Feed Virtualization
+
+```mermaid
+flowchart TD
+  Query[useGetRecentPosts]
+  Posts[posts.documents]
+  Virtualizer[useVirtualizer]
+  Scroll[home-container scroll element]
+  Estimate[Estimate row height]
+  Visible[Compute visible indexes]
+  Overscan[Add overscan buffer]
+  Mount[Mount visible PostCard rows]
+  Measure[Measure rendered row heights]
+
+  Query --> Posts
+  Posts --> Virtualizer
+  Scroll --> Virtualizer
+  Estimate --> Virtualizer
+  Virtualizer --> Visible
+  Visible --> Overscan
+  Overscan --> Mount
+  Mount --> Measure
+  Measure --> Virtualizer
+```
+
+Only the visible home feed rows and a small overscan buffer are mounted. The full loaded post array still exists in memory, but the DOM does not grow linearly with scroll depth.
+
+### Image Loading
+
+```mermaid
+flowchart TD
+  Render[Render PerformanceImage]
+  Priority{Is priority image?}
+  Eager[loading eager and fetchPriority high]
+  Lazy[loading lazy and fetchPriority auto]
+  Skeleton[Show skeleton and blurred background]
+  Decode[Browser decodes image async]
+  Loaded{onLoad fired?}
+  Reveal[Fade in sharp image]
+
+  Render --> Priority
+  Priority -->|Yes| Eager
+  Priority -->|No| Lazy
+  Eager --> Skeleton
+  Lazy --> Skeleton
+  Skeleton --> Decode
+  Decode --> Loaded
+  Loaded -->|Yes| Reveal
+```
+
+The component relies on stable CSS dimensions from the caller, such as `post-card_img`, `grid-post_link`, `saved-card_img`, and `post_details-img`, to reserve layout space before the image finishes loading.
+
+## 14. Important Algorithms
 
 ### Tag Parsing
 
@@ -565,7 +644,7 @@ Output:
 3. Build searchable text from caption, location, creator name, creator username, and tags.
 4. Return posts whose normalized text contains the normalized search term.
 
-## 14. Detailed Flow Charts
+## 15. Detailed Flow Charts
 
 ### Signup Flow
 
@@ -859,7 +938,7 @@ flowchart TD
   SetContext --> Navigate
 ```
 
-## 15. Permissions And Security Requirements
+## 16. Permissions And Security Requirements
 
 Appwrite must allow authenticated users to read and write the required collections. Storage uploads are created with public read permission so images are visible in the browser.
 
@@ -870,7 +949,7 @@ Recommended production hardening:
 - Users should only create/delete their own save records.
 - Array fields such as `likes`, `followers`, and `following` need careful permissions or server-side functions if stronger consistency is required.
 
-## 16. Edge Cases
+## 17. Edge Cases
 
 | Case | Current Behavior |
 | --- | --- |
@@ -879,13 +958,15 @@ Recommended production hardening:
 | Existing session during sign-in | Returns current session instead of failing. |
 | Create post without image | `uploadFile` throws `Please select an image before posting.` |
 | Search index unavailable | Falls back to latest-50 client-side search. |
-| Like/save mutation fails | Local optimistic state rolls back. |
+| Like/save mutation fails | Previous React Query cache snapshots are restored. |
+| Post image is below viewport | Browser lazily loads and decodes it asynchronously. |
+| Long feed grows | Home feed keeps only virtualized visible rows mounted. |
 | Update image succeeds but document update fails | Newly uploaded file is deleted. |
 | User replaces profile/post image | Old file is deleted after successful update. |
 | User views own profile | Edit and liked-posts tab are visible. |
 | User views another profile | Follow/unfollow button is visible. |
 
-## 17. Known Limitations
+## 18. Known Limitations
 
 - No comments or messaging.
 - No real-time subscriptions.
@@ -895,8 +976,9 @@ Recommended production hardening:
 - Search is primarily caption-based unless fallback executes.
 - Profile username and email are displayed during edit but are not editable.
 - UI owner checks must be backed by Appwrite permissions to be secure.
+- Responsive `sizes` hints are present, but Appwrite file view URLs do not currently generate multiple image widths.
 
-## 18. Suggested Future Improvements
+## 19. Suggested Future Improvements
 
 - Move likes/follows to separate collections for better concurrency.
 - Add Appwrite Functions for sensitive writes.
@@ -906,3 +988,4 @@ Recommended production hardening:
 - Add stronger file validation for size and count.
 - Add tests for auth redirects, post creation, optimistic updates, and profile update.
 - Improve saved posts API to avoid fetching each post separately.
+- Add true responsive image variants through Appwrite previews or a dedicated image CDN.
