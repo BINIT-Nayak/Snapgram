@@ -472,8 +472,11 @@ Reads are keyed by query keys such as:
 - `GET_SAVED_POSTS`
 - `GET_LIKED_POSTS`
 - `SEARCH_POSTS`
+- `SEARCH_SNAPGRAM`
 
 Mutations invalidate related queries after success. This keeps feeds, profiles, saved posts, and current user relationships reasonably fresh without manual prop drilling.
+
+Search is URL-backed through `/explore?q=<term>&type=<group>`. The grouped search query covers posts, people, tags, and locations with React Query caching and debounced input state.
 
 ## 14. Feed Performance Strategy
 
@@ -559,7 +562,7 @@ The app builds to static assets through Vite. Runtime backend calls go directly 
 - Likes and follows are separate relationship documents, which avoids lost updates but requires precise create/delete permissions and uniqueness for each relationship pair.
 - Explore's Most liked ranking reads `posts.likeCount` with backend ordering instead of downloading relationships to sort on the client.
 - Saved posts use separate relationship documents and batch post retrieval to avoid N+1 post requests.
-- Search depends on Appwrite full-text search on `caption`; fallback search only scans the latest 50 posts.
+- Search depends on Appwrite full-text indexes for post captions, locations, searchable tags, names, and usernames.
 - Auth state depends partly on Appwrite's `cookieFallback` localStorage behavior before calling `getCurrentUser`.
 - Public file read permissions make image rendering simple but may not fit private-media requirements.
 - Home feed virtualization uses estimated row heights and runtime measurement; large caption/image variations should be checked for scroll smoothness.

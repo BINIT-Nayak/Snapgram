@@ -6,6 +6,7 @@ import type {
   UpdatePostInput,
   UpdateUserInput,
 } from "./forms";
+import type { ExploreSearchType } from "./search";
 
 export type {
   DocumentList,
@@ -23,6 +24,12 @@ export type {
   UpdateUserInput,
 } from "./forms";
 export type { NavLink } from "./navigation";
+export type {
+  ExploreSearchType,
+  LocationSearchResult,
+  SnapgramSearchResults,
+  TagSearchResult,
+} from "./search";
 
 export type INavLink = NavLink;
 export type INewPost = NewPost;
@@ -30,3 +37,4 @@ export type INewUser = NewUser;
 export type IUpdatePost = UpdatePostInput;
 export type IUpdateUser = UpdateUserInput;
 export type IUser = AuthUser;
+export type ISearchType = ExploreSearchType;

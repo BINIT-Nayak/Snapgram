@@ -244,12 +244,40 @@ src/lib/appwrite/posts.ts
 src/lib/appwrite/users.ts
 src/lib/appwrite/saves.ts
 src/lib/appwrite/relationships.ts
+src/lib/appwrite/search.ts
 src/lib/appwrite/storage.ts
 src/lib/appwrite/config.ts
 src/lib/appwrite/utils.ts
 ```
 
 `src/lib/appwrite/api.ts` re-exports these modules so existing imports can use one stable path.
+
+## Search
+
+Explore search is URL-backed and shareable:
+
+```text
+/explore?q=react&type=posts
+```
+
+Supported result groups:
+
+- Posts
+- People
+- Tags
+- Locations
+
+Search uses debouncing, React Query caching, recent searches, tab state in the URL, empty states, and keyboard shortcuts for Escape and ArrowDown.
+
+Required Appwrite full-text indexes:
+
+```text
+posts.caption
+posts.location
+posts.searchableTags
+users.name
+users.username
+```
 
 ## UI Primitives
 

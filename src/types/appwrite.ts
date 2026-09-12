@@ -21,6 +21,7 @@ export type PostDocument = Models.Document & {
   imageId: string;
   location: string;
   tags?: string[];
+  searchableTags?: string;
   likeCount?: number;
   commentCount?: number;
   saveCount?: number;

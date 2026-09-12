@@ -11,3 +11,5 @@ export const assertResult = <T>(
 
 export const parseTags = (tags?: string) =>
   tags?.replace(/ /g, "").split(",").filter(Boolean) || [];
+
+export const buildSearchableTags = (tags: string[]) => tags.join(" ");

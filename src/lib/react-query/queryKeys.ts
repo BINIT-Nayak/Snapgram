@@ -18,4 +18,5 @@ export enum QUERY_KEYS {
   GET_FILE_PREVIEW = "getFilePreview",
 
   SEARCH_POSTS = "getSearchPosts",
+  SEARCH_SNAPGRAM = "searchSnapgram",
 }

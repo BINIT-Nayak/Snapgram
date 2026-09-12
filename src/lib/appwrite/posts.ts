@@ -4,11 +4,12 @@ import { NewPost, PostDocument, UpdatePostInput } from "@/types";
 import { appwriteConfig, databases } from "./config";
 import { hydratePostLikes, hydratePostsLikes } from "./relationships";
 import { deleteFile, getFilePreview, uploadFile } from "./storage";
-import { assertResult, parseTags } from "./utils";
+import { assertResult, buildSearchableTags, parseTags } from "./utils";
 
 export async function createPost(post: NewPost) {
   const uploadedFile = await uploadFile(post.file[0]);
   const fileUrl = getFilePreview(uploadedFile.$id);
+  const tags = parseTags(post.tags);
 
   if (!fileUrl) {
     await deleteFile(uploadedFile.$id);
@@ -25,7 +26,8 @@ export async function createPost(post: NewPost) {
       imageUrl: fileUrl.toString(),
       imageId: uploadedFile.$id,
       location: post.location,
-      tags: parseTags(post.tags),
+      tags,
+      searchableTags: buildSearchableTags(tags),
       likeCount: 0,
     }
   );
@@ -109,6 +111,7 @@ export async function updatePost(post: UpdatePostInput) {
     appwriteConfig.postCollectionId,
     post.postId
   );
+  const tags = parseTags(post.tags);
 
   if (existingPost.creator?.$id !== post.userId) {
     throw new Error("You are not allowed to update this post.");
@@ -146,7 +149,8 @@ export async function updatePost(post: UpdatePostInput) {
       imageUrl: image.imageUrl.toString(),
       imageId: image.imageId,
       location: post.location,
-      tags: parseTags(post.tags),
+      tags,
+      searchableTags: buildSearchableTags(tags),
     }
   );
 

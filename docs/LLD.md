@@ -63,6 +63,7 @@ src/
       posts.ts
       relationships.ts
       saves.ts
+      search.ts
       storage.ts
       users.ts
       utils.ts
@@ -247,6 +248,22 @@ Core Appwrite variables are required and fail fast if missing. The likes/follows
 | `deleteSavedPost` | Deletes a save document by saved record ID. |
 | `getSavedPosts` | Fetches save records for user, uses embedded post relationships when present, otherwise batches missing post IDs into one posts query. |
 
+### `search.ts`
+
+| Function | Behavior |
+| --- | --- |
+| `searchSnapgram` | Runs grouped Appwrite full-text searches across post captions, post locations, post tags, user names, and usernames. Returns posts, people, tags, and locations in one cached result object. |
+
+Required Appwrite full-text indexes:
+
+```text
+posts.caption
+posts.location
+posts.searchableTags
+users.name
+users.username
+```
+
 ### `users.ts`
 
 | Function | Behavior |
@@ -280,6 +297,7 @@ Core Appwrite variables are required and fail fast if missing. The likes/follows
 | `useGetUsers` | `GET_USERS` | `getUsers` |
 | `useGetUserById` | `GET_USER_BY_ID, userId` | `getUserById` |
 | `useGetFollowStatus` | `GET_FOLLOW_STATUS, currentUserId, targetUserId` | `getFollowByUsers` |
+| `useSearchSnapgram` | `SEARCH_SNAPGRAM, searchTerm` | `searchSnapgram` |
 
 ### Mutation Hooks
 

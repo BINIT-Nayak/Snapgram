@@ -43,6 +43,7 @@ import {
   getRecentPosts,
   getInfinitePosts,
   searchPosts,
+  searchSnapgram,
   savePost,
   deleteSavedPost,
   getSavedPosts,
@@ -360,6 +361,17 @@ export const useSearchPosts = (searchTerm: string) => {
     queryKey: [QUERY_KEYS.SEARCH_POSTS, trimmedSearch],
     queryFn: () => searchPosts(trimmedSearch),
     enabled: !!trimmedSearch,
+  });
+};
+
+export const useSearchSnapgram = (searchTerm: string) => {
+  const trimmedSearch = searchTerm.trim();
+
+  return useQuery({
+    queryKey: [QUERY_KEYS.SEARCH_SNAPGRAM, trimmedSearch],
+    queryFn: () => searchSnapgram(trimmedSearch),
+    enabled: !!trimmedSearch,
+    keepPreviousData: true,
   });
 };
 
