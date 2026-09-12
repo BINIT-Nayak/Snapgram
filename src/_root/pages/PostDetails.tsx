@@ -30,11 +30,14 @@ const PostDetails = () => {
   const postImageUrl = post?.imageId
     ? getFilePreview(post.imageId)?.toString()
     : post?.imageUrl;
+  const isPostOwner = !!post && user.id === post.creator?.$id;
 
   const handleDeletePost = () => {
     if (!post?.imageId) return;
 
-    deletePost({ postId: id, imageId: post.imageId });
+    if (!isPostOwner) return;
+
+    deletePost({ postId: id, imageId: post.imageId, userId: user.id });
     navigate(-1);
   };
 
@@ -97,34 +100,30 @@ const PostDetails = () => {
                 </div>
               </Link>
 
-              <div className="flex-center gap-4">
-                <Link
-                  to={`/update-post/${post?.$id}`}
-                  className={`icon-action ${
-                    user.id !== post?.creator?.$id && "hidden"
-                  }`}>
-                  <img
-                    src={"/assets/icons/edit.svg"}
-                    alt="edit"
-                    width={24}
-                    height={24}
-                  />
-                </Link>
+              {isPostOwner && (
+                <div className="flex-center gap-4">
+                  <Link to={`/update-post/${post?.$id}`} className="icon-action">
+                    <img
+                      src={"/assets/icons/edit.svg"}
+                      alt="edit"
+                      width={24}
+                      height={24}
+                    />
+                  </Link>
 
-                <Button
-                  onClick={handleDeletePost}
-                  variant="ghost"
-                  className={`post_details-delete_btn icon-action ${
-                    user.id !== post?.creator?.$id && "hidden"
-                  }`}>
-                  <img
-                    src={"/assets/icons/delete.svg"}
-                    alt="delete"
-                    width={24}
-                    height={24}
-                  />
-                </Button>
-              </div>
+                  <Button
+                    onClick={handleDeletePost}
+                    variant="ghost"
+                    className="post_details-delete_btn icon-action">
+                    <img
+                      src={"/assets/icons/delete.svg"}
+                      alt="delete"
+                      width={24}
+                      height={24}
+                    />
+                  </Button>
+                </div>
+              )}
             </div>
 
             <hr className="border w-full border-dark-4/80" />

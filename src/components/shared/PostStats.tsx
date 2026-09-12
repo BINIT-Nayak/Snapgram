@@ -40,6 +40,10 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
   });
   const isSaved = !!savedPostRecord;
   const isLiked = checkIsLiked(likesList, userId);
+  const likeCount = Math.max(
+    typeof post.likeCount === "number" ? post.likeCount : 0,
+    likesList.length
+  );
   const likedPostRecord = post.likes?.find(
     (like) => getLikeUserId(like) === userId
   );
@@ -103,7 +107,7 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
           />
         </button>
         <p className="small-semibold lg:base-medium text-light-2">
-          {likesList.length}
+          {likeCount}
         </p>
       </div>
 

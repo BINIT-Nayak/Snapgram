@@ -16,6 +16,7 @@ const PostCard = ({ post, eagerImage = false }: PostCardProps) => {
   const postImageUrl = post.imageId
     ? getFilePreview(post.imageId)?.toString()
     : post.imageUrl;
+  const isPostOwner = user.id === post.creator.$id;
 
   if (!post.creator) return;
 
@@ -54,18 +55,16 @@ const PostCard = ({ post, eagerImage = false }: PostCardProps) => {
           </div>
         </div>
 
-        <Link
-          to={`/update-post/${post.$id}`}
-          className={`post-card_edit ${
-            user.id !== post.creator.$id && "hidden"
-          }`}>
-          <img
-            src={"/assets/icons/edit.svg"}
-            alt="edit"
-            width={20}
-            height={20}
-          />
-        </Link>
+        {isPostOwner && (
+          <Link to={`/update-post/${post.$id}`} className="post-card_edit">
+            <img
+              src={"/assets/icons/edit.svg"}
+              alt="edit"
+              width={20}
+              height={20}
+            />
+          </Link>
+        )}
       </div>
 
       <Link to={`/posts/${post.$id}`}>

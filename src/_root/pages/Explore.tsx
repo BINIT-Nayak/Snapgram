@@ -10,7 +10,11 @@ import {
   Loader,
   VirtualPostGrid,
 } from "@/components/shared";
-import { useGetPosts, useSearchPosts } from "@/lib/react-query/queries";
+import {
+  useGetMostLikedPosts,
+  useGetPosts,
+  useSearchPosts,
+} from "@/lib/react-query/queries";
 
 type ExploreFilter = "all" | "liked" | "latest";
 
@@ -66,12 +70,47 @@ const Explore = () => {
     isFetching: isSearchFetching,
     refetch: refetchSearch,
   } = useSearchPosts(debouncedSearch);
+  const {
+    data: mostLikedPostPages,
+    fetchNextPage: fetchNextMostLikedPage,
+    hasNextPage: hasNextMostLikedPage,
+    isLoading: isMostLikedLoading,
+    isError: isMostLikedError,
+    isFetchingNextPage: isFetchingNextMostLikedPage,
+    refetch: refetchMostLikedPosts,
+  } = useGetMostLikedPosts(activeFilter === "liked" && !searchValue);
 
   useEffect(() => {
-    if (inView && !searchValue && hasNextPage && !isFetchingNextPage) {
+    if (
+      inView &&
+      !searchValue &&
+      activeFilter === "liked" &&
+      hasNextMostLikedPage &&
+      !isFetchingNextMostLikedPage
+    ) {
+      fetchNextMostLikedPage();
+    }
+
+    if (
+      inView &&
+      !searchValue &&
+      activeFilter !== "liked" &&
+      hasNextPage &&
+      !isFetchingNextPage
+    ) {
       fetchNextPage();
     }
-  }, [fetchNextPage, hasNextPage, inView, isFetchingNextPage, searchValue]);
+  }, [
+    activeFilter,
+    fetchNextPage,
+    fetchNextMostLikedPage,
+    hasNextPage,
+    hasNextMostLikedPage,
+    inView,
+    isFetchingNextPage,
+    isFetchingNextMostLikedPage,
+    searchValue,
+  ]);
 
   if (!posts && !isPostsError)
     return (
@@ -100,17 +139,22 @@ const Explore = () => {
     ).values()
   );
   const visiblePosts = [...allPosts].sort((firstPost, secondPost) => {
-    if (activeFilter === "liked") {
-      return (secondPost.likes?.length || 0) - (firstPost.likes?.length || 0);
-    }
-
     return (
       new Date(secondPost.$createdAt).getTime() -
       new Date(firstPost.$createdAt).getTime()
     );
   });
+  const mostLikedPosts = Array.from(
+    new Map(
+      mostLikedPostPages?.pages
+        .flatMap((item) => item.documents)
+        .map((post) => [post.$id, post]) || []
+    ).values()
+  );
+  const postsToRender =
+    activeFilter === "liked" ? mostLikedPosts : visiblePosts;
   const shouldShowPosts =
-    !shouldShowSearchResults && visiblePosts.length === 0;
+    !shouldShowSearchResults && postsToRender.length === 0;
 
   return (
     <div className="explore-container" ref={scrollRef}>
@@ -175,18 +219,31 @@ const Explore = () => {
             onRetry={() => refetchSearch()}
             searchedPosts={searchedPosts}
           />
+        ) : activeFilter === "liked" && isMostLikedLoading ? (
+          <Loader />
+        ) : activeFilter === "liked" && isMostLikedError ? (
+          <ErrorState
+            message="Could not load most liked posts."
+            onRetry={() => refetchMostLikedPosts()}
+          />
         ) : shouldShowPosts ? (
           <p className="text-light-4 mt-10 text-center w-full">End of posts</p>
         ) : (
           <VirtualPostGrid
-            posts={visiblePosts}
+            posts={postsToRender}
             scrollRef={scrollRef}
             priorityFirst
           />
         )}
       </div>
 
-      {hasNextPage && !searchValue && (
+      {!searchValue && activeFilter === "liked" && hasNextMostLikedPage && (
+        <div ref={ref} className="mt-10">
+          {isFetchingNextMostLikedPage && <Loader />}
+        </div>
+      )}
+
+      {!searchValue && activeFilter !== "liked" && hasNextPage && (
         <div ref={ref} className="mt-10">
           {isFetchingNextPage && <Loader />}
         </div>

@@ -215,6 +215,7 @@ Core Appwrite variables are required and fail fast if missing. The likes/follows
 | `createPost` | Uploads image, creates file view URL, creates post document. |
 | `searchPosts` | Uses Appwrite caption search; falls back to client-side filtering across recent posts. |
 | `getInfinitePosts` | Lists posts ordered by `$updatedAt`, limited to 9, cursor-based. |
+| `getMostLikedPosts` | Lists posts ordered by `likeCount`, limited to 9, cursor-based. |
 | `getPostById` | Fetches one post document and hydrates likes from the likes collection. Throws when ID is missing. |
 | `updatePost` | Optionally uploads replacement image, updates post, deletes old image after success. |
 | `deletePost` | Deletes post document, then deletes storage image. |
@@ -236,13 +237,15 @@ Core Appwrite variables are required and fail fast if missing. The likes/follows
 | `unfollowUser` | Deletes the follow relationship document if it exists. |
 | `hydrateUserFollowCounts` | Adds follower/following counts from the follows collection. |
 
+`likeCount` is denormalized on post documents so Explore can rank with `orderDesc("likeCount")`. The client reconciles it best-effort after like/unlike; in production, this counter should be maintained by an Appwrite Function so users do not need broad post update permissions.
+
 ### `saves.ts`
 
 | Function | Behavior |
 | --- | --- |
 | `savePost` | Creates a save document with `user` and `post`. |
 | `deleteSavedPost` | Deletes a save document by saved record ID. |
-| `getSavedPosts` | Fetches save records for user, extracts post IDs, then fetches posts one by one. |
+| `getSavedPosts` | Fetches save records for user, uses embedded post relationships when present, otherwise batches missing post IDs into one posts query. |
 
 ### `users.ts`
 
@@ -1017,8 +1020,7 @@ Recommended production hardening:
 - No comments or messaging.
 - No real-time subscriptions.
 - No server-side authorization logic in this repo.
-- Likes and follows can race because arrays are overwritten.
-- Saved posts are fetched with an N+1 pattern.
+- Denormalized counters should be moved to Appwrite Functions for stronger production consistency.
 - Search is primarily caption-based unless fallback executes.
 - Profile username and email are displayed during edit but are not editable.
 - UI owner checks must be backed by Appwrite permissions to be secure.
@@ -1026,12 +1028,10 @@ Recommended production hardening:
 
 ## 20. Suggested Future Improvements
 
-- Move likes/follows to separate collections for better concurrency.
 - Add Appwrite Functions for sensitive writes.
 - Add real-time updates with Appwrite Realtime.
 - Add comments collection and comment UI.
 - Add post deletion confirmation.
 - Add stronger file validation for size and count.
 - Add tests for auth redirects, post creation, optimistic updates, and profile update.
-- Improve saved posts API to avoid fetching each post separately.
 - Add true responsive image variants through Appwrite previews or a dedicated image CDN.

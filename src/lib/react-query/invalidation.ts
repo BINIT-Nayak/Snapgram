@@ -33,6 +33,9 @@ export const invalidateLikedPosts = (queryClient: QueryClient) => {
   queryClient.invalidateQueries({
     queryKey: [QUERY_KEYS.GET_LIKED_POSTS],
   });
+  queryClient.invalidateQueries({
+    queryKey: [QUERY_KEYS.GET_MOST_LIKED_POSTS],
+  });
 };
 
 export const invalidateUsers = (queryClient: QueryClient) => {

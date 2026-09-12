@@ -28,6 +28,28 @@ const followId = (followerId: string, followingId: string) =>
 export const getLikeUserId = (like: LikeDocument | string) =>
   typeof like === "string" ? like : like.userId;
 
+async function syncPostLikeCount(postId: string) {
+  const likes = await getLikesByPostId(postId);
+
+  await databases.updateDocument<PostDocument>(
+    appwriteConfig.databaseId,
+    appwriteConfig.postCollectionId,
+    postId,
+    { likeCount: likes.total }
+  );
+
+  return likes.total;
+}
+
+async function syncPostLikeCountSafely(postId: string) {
+  try {
+    await syncPostLikeCount(postId);
+  } catch {
+    // Like relationship writes should not fail just because denormalized counters
+    // are not writable from the client. In production, move this to a Function.
+  }
+}
+
 export async function getLikesByPostId(postId: string) {
   if (!isLikesCollectionConfigured()) {
     return {
@@ -95,7 +117,7 @@ export async function likePost(userId: string, postId: string) {
   }
 
   try {
-    return await databases.createDocument<LikeDocument>(
+    const like = await databases.createDocument<LikeDocument>(
       appwriteConfig.databaseId,
       appwriteConfig.likesCollectionId,
       likeId(userId, postId),
@@ -104,14 +126,22 @@ export async function likePost(userId: string, postId: string) {
         postId,
       }
     );
+
+    await syncPostLikeCountSafely(postId);
+
+    return like;
   } catch {
     const like = await getLikeByUserAndPost(userId, postId);
+
+    if (like) {
+      await syncPostLikeCountSafely(postId);
+    }
 
     return assertResult(like, "Post like failed.");
   }
 }
 
-export async function unlikePost(likeRecordId: string) {
+export async function unlikePost(likeRecordId: string, postId?: string) {
   if (!isLikesCollectionConfigured()) {
     throw new Error("Likes collection is not configured.");
   }
@@ -123,6 +153,10 @@ export async function unlikePost(likeRecordId: string) {
   );
 
   assertResult(statusCode, "Post unlike failed.");
+
+  if (postId) {
+    await syncPostLikeCountSafely(postId);
+  }
 
   return { status: "Ok" };
 }
@@ -161,6 +195,10 @@ export const withLikes = (
 ): PostDocument => ({
   ...post,
   likes: likes.filter((like) => like.postId === post.$id),
+  likeCount:
+    typeof post.likeCount === "number"
+      ? post.likeCount
+      : likes.filter((like) => like.postId === post.$id).length,
 });
 
 export async function hydratePostLikes(post: PostDocument) {

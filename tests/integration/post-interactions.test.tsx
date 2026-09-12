@@ -43,6 +43,7 @@ vi.mock("@/lib/appwrite/api", () => ({
   unfollowUser: vi.fn(),
   getFollowByUsers: vi.fn(),
   getLikedPosts: vi.fn(),
+  getMostLikedPosts: vi.fn(),
   getRecentPosts: vi.fn(),
   getInfinitePosts: vi.fn(),
   searchPosts: vi.fn(),

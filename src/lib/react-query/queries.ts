@@ -39,6 +39,7 @@ import {
   getFollowByUsers,
   getFollowsByFollowerAndTargets,
   getLikedPosts,
+  getMostLikedPosts,
   getRecentPosts,
   getInfinitePosts,
   searchPosts,
@@ -181,6 +182,11 @@ const updatePostCaches = (
     (data) => updatePostInInfiniteList(data, postId, updatePost)
   );
 
+  queryClient.setQueriesData<InfiniteData<DocumentList<PostDocument>>>(
+    { queryKey: [QUERY_KEYS.GET_MOST_LIKED_POSTS] },
+    (data) => updatePostInInfiniteList(data, postId, updatePost)
+  );
+
   queryClient.setQueriesData<DocumentList<PostDocument>>(
     { queryKey: [QUERY_KEYS.GET_USER_POSTS] },
     (data) => updatePostInList(data, postId, updatePost)
@@ -304,6 +310,7 @@ const postInteractionQueryKeys = (postId: string): QueryKey[] => [
   [QUERY_KEYS.GET_POST_BY_ID, postId],
   [QUERY_KEYS.GET_RECENT_POSTS],
   [QUERY_KEYS.GET_INFINITE_POSTS],
+  [QUERY_KEYS.GET_MOST_LIKED_POSTS],
   [QUERY_KEYS.GET_USER_POSTS],
   [QUERY_KEYS.SEARCH_POSTS],
   [QUERY_KEYS.GET_CURRENT_USER],
@@ -405,8 +412,15 @@ export const useUpdatePost = () => {
 export const useDeletePost = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ postId, imageId }: { postId?: string; imageId: string }) =>
-      deletePost(postId, imageId),
+    mutationFn: ({
+      postId,
+      imageId,
+      userId,
+    }: {
+      postId?: string;
+      imageId: string;
+      userId: string;
+    }) => deletePost(postId, imageId, userId),
     onSuccess: () => {
       invalidatePostLists(queryClient);
       invalidateUserPosts(queryClient);
@@ -428,6 +442,7 @@ export const useLikePost = () => {
       updatePostCaches(queryClient, variables.postId, (post) => ({
         ...post,
         likes: buildOptimisticLikes(post, variables.userId),
+        likeCount: Math.max((post.likeCount || post.likes?.length || 0) + 1, 0),
       }));
       updateLikedPostLists(queryClient, variables.userId, variables.post, true);
 
@@ -449,7 +464,8 @@ export const useLikePost = () => {
 export const useUnlikePost = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ likeRecordId }: UnlikePostInput) => unlikePost(likeRecordId),
+    mutationFn: ({ likeRecordId, postId }: UnlikePostInput) =>
+      unlikePost(likeRecordId, postId),
     onMutate: async (variables: UnlikePostInput) => {
       await cancelPostInteractionQueries(queryClient, variables.postId);
 
@@ -465,6 +481,7 @@ export const useUnlikePost = () => {
             like.$id !== variables.likeRecordId &&
             like.userId !== variables.userId
         ),
+        likeCount: Math.max((post.likeCount || post.likes?.length || 0) - 1, 0),
       }));
       updateLikedPostLists(queryClient, variables.userId, variables.post, false);
 
@@ -589,6 +606,23 @@ export const useGetLikedPosts = (userId?: string) => {
     queryKey: [QUERY_KEYS.GET_LIKED_POSTS, userId],
     queryFn: () => getLikedPosts(userId),
     enabled: !!userId,
+  });
+};
+
+export const useGetMostLikedPosts = (enabled = true) => {
+  return useInfiniteQuery({
+    queryKey: [QUERY_KEYS.GET_MOST_LIKED_POSTS],
+    queryFn: ({ pageParam }: QueryFunctionContext) =>
+      getMostLikedPosts({ pageParam: pageParam as string | undefined }),
+    enabled,
+    getNextPageParam: (lastPage) => {
+      if (lastPage && lastPage.documents.length === 0) {
+        return null;
+      }
+
+      const lastId = lastPage.documents[lastPage.documents.length - 1]?.$id;
+      return lastId || null;
+    },
   });
 };
 

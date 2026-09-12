@@ -33,6 +33,7 @@ export type NewPost = {
 
 export type UpdatePostInput = {
   postId: string;
+  userId: string;
   caption: string;
   imageId: string;
   imageUrl: URL | string;

@@ -26,6 +26,7 @@ export async function createPost(post: NewPost) {
       imageId: uploadedFile.$id,
       location: post.location,
       tags: parseTags(post.tags),
+      likeCount: 0,
     }
   );
 
@@ -103,6 +104,16 @@ export async function getPostById(postId?: string) {
 }
 
 export async function updatePost(post: UpdatePostInput) {
+  const existingPost = await databases.getDocument<PostDocument>(
+    appwriteConfig.databaseId,
+    appwriteConfig.postCollectionId,
+    post.postId
+  );
+
+  if (existingPost.creator?.$id !== post.userId) {
+    throw new Error("You are not allowed to update this post.");
+  }
+
   const hasFileToUpdate = post.file.length > 0;
 
   let image: { imageUrl: string | URL; imageId: string } = {
@@ -152,8 +163,22 @@ export async function updatePost(post: UpdatePostInput) {
   return result;
 }
 
-export async function deletePost(postId?: string, imageId?: string) {
+export async function deletePost(
+  postId?: string,
+  imageId?: string,
+  userId?: string
+) {
   if (!postId || !imageId) return;
+
+  const existingPost = await databases.getDocument<PostDocument>(
+    appwriteConfig.databaseId,
+    appwriteConfig.postCollectionId,
+    postId
+  );
+
+  if (existingPost.creator?.$id !== userId) {
+    throw new Error("You are not allowed to delete this post.");
+  }
 
   const statusCode = await databases.deleteDocument(
     appwriteConfig.databaseId,
@@ -184,6 +209,26 @@ export async function getRecentPosts() {
     appwriteConfig.databaseId,
     appwriteConfig.postCollectionId,
     [Query.orderDesc("$createdAt"), Query.limit(20)]
+  );
+
+  return hydratePostsLikes(posts);
+}
+
+export async function getMostLikedPosts({ pageParam }: { pageParam?: string }) {
+  const queries: string[] = [
+    Query.orderDesc("likeCount"),
+    Query.orderDesc("$createdAt"),
+    Query.limit(9),
+  ];
+
+  if (pageParam) {
+    queries.push(Query.cursorAfter(pageParam));
+  }
+
+  const posts = await databases.listDocuments<PostDocument>(
+    appwriteConfig.databaseId,
+    appwriteConfig.postCollectionId,
+    queries
   );
 
   return hydratePostsLikes(posts);

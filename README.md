@@ -132,7 +132,18 @@ imageUrl    string
 imageId     string
 location    string
 tags        string array
+likeCount   integer, required, default 0
 ```
+
+Post indexes:
+
+```text
+posts_likeCount_index   key on likeCount
+```
+
+Existing posts should be backfilled with `likeCount: 0`, then optionally updated to the real count from the `likes` collection.
+
+For production-grade permissions, update `likeCount` from an Appwrite Function triggered by like create/delete events. The client does a best-effort reconciliation, but the backend should own denormalized counters if post documents are owner-write-only.
 
 Saves collection:
 

@@ -23,7 +23,7 @@ const GridPostList = ({
   return (
     <ul className="grid-container">
       {posts.map((post, index) => (
-        <li key={post.$id} className="relative min-w-80 h-80">
+        <li key={post.$id} className="group grid-post_item">
           <Link to={`/posts/${post.$id}`} className="grid-post_link">
             <PerformanceImage
               src={

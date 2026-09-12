@@ -163,6 +163,7 @@ erDiagram
     string imageId
     string location
     string_array tags
+    int likeCount
   }
 
   SAVE {
@@ -556,7 +557,8 @@ The app builds to static assets through Vite. Runtime backend calls go directly 
 
 - The frontend talks directly to Appwrite, so permissions must be precise.
 - Likes and follows are separate relationship documents, which avoids lost updates but requires precise create/delete permissions and uniqueness for each relationship pair.
-- Saved posts use separate documents, which is cleaner, but `getSavedPosts` fetches each saved post individually.
+- Explore's Most liked ranking reads `posts.likeCount` with backend ordering instead of downloading relationships to sort on the client.
+- Saved posts use separate relationship documents and batch post retrieval to avoid N+1 post requests.
 - Search depends on Appwrite full-text search on `caption`; fallback search only scans the latest 50 posts.
 - Auth state depends partly on Appwrite's `cookieFallback` localStorage behavior before calling `getCurrentUser`.
 - Public file read permissions make image rendering simple but may not fit private-media requirements.

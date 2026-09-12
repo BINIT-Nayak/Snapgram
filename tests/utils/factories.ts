@@ -48,6 +48,7 @@ export const makePost = (
     imageId: "post-file",
     location: "Ahmedabad, India",
     tags: ["test", "snapgram"],
+    likeCount: 0,
     likes: [],
     ...overrides,
   }) as PostDocument;

@@ -1,4 +1,5 @@
 import { screen } from "@testing-library/react";
+import { within } from "@testing-library/dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import PostCard from "@/components/shared/PostCard";
@@ -35,6 +36,7 @@ vi.mock("@/lib/appwrite/api", () => ({
   updateUser: vi.fn(),
   unfollowUser: vi.fn(),
   getLikedPosts: vi.fn(),
+  getMostLikedPosts: vi.fn(),
   getRecentPosts: vi.fn(),
   getInfinitePosts: vi.fn(),
   searchPosts: vi.fn(),
@@ -78,7 +80,7 @@ describe("PostCard", () => {
       <PostCard post={makePost({ creator: makeUser({ $id: "user-1" }) })} />
     );
 
-    expect(screen.getByAltText("edit").closest("a")).not.toHaveClass("hidden");
+    expect(screen.getByAltText("edit")).toBeInTheDocument();
 
     mockUseUserContext.mockReturnValue({
       user: makeUser({ $id: "other-user", id: "other-user" }),
@@ -88,6 +90,9 @@ describe("PostCard", () => {
       <PostCard post={makePost({ creator: makeUser({ $id: "user-1" }) })} />
     );
 
-    expect(screen.getByAltText("edit").closest("a")).toHaveClass("hidden");
+    expect(
+      within(screen.getByText("A beautiful test post").closest(".post-card")!)
+        .queryByAltText("edit")
+    ).not.toBeInTheDocument();
   });
 });

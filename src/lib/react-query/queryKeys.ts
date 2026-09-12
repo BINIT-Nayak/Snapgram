@@ -14,6 +14,7 @@ export enum QUERY_KEYS {
   GET_USER_POSTS = "getUserPosts",
   GET_SAVED_POSTS = "getSavedPosts",
   GET_LIKED_POSTS = "getLikedPosts",
+  GET_MOST_LIKED_POSTS = "getMostLikedPosts",
   GET_FILE_PREVIEW = "getFilePreview",
 
   SEARCH_POSTS = "getSearchPosts",
