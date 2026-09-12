@@ -3,19 +3,27 @@ import { MouseEvent, useEffect, useState } from "react";
 import { Button, ButtonProps } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useUserContext } from "@/context/AuthContext";
-import { useFollowUser, useUnfollowUser } from "@/lib/react-query/queries";
-import { UserDocument } from "@/types";
+import {
+  useFollowUser,
+  useGetFollowStatus,
+  useUnfollowUser,
+} from "@/lib/react-query/queries";
+import { FollowDocument, UserDocument } from "@/types";
 
 type FollowButtonProps = {
   targetUser: UserDocument;
   className?: string;
   size?: ButtonProps["size"];
+  followRecord?: FollowDocument | null;
+  hasFollowStatus?: boolean;
 };
 
 const FollowButton = ({
   targetUser,
   className = "",
   size = "sm",
+  followRecord: providedFollowRecord,
+  hasFollowStatus = false,
 }: FollowButtonProps) => {
   const { user } = useUserContext();
   const { toast } = useToast();
@@ -29,10 +37,18 @@ const FollowButton = ({
   const targetUserId = targetUser.$id;
   const isOwnProfile = currentUserId === targetUserId;
   const isLoading = isFollowingUser || isUnfollowingUser;
+  const { data: queriedFollowRecord } = useGetFollowStatus(
+    currentUserId,
+    targetUserId,
+    !hasFollowStatus
+  );
+  const followRecord = hasFollowStatus
+    ? providedFollowRecord
+    : queriedFollowRecord;
 
   useEffect(() => {
-    setIsFollowing((targetUser.followers || []).includes(currentUserId));
-  }, [currentUserId, targetUser.followers]);
+    setIsFollowing(!!followRecord);
+  }, [followRecord]);
 
   const handleFollow = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();

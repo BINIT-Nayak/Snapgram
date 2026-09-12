@@ -1,13 +1,36 @@
+import { useMemo } from "react";
+
 import { ErrorState, Loader, UserCard } from "@/components/shared";
-import { useGetUsers } from "@/lib/react-query/queries";
+import { useUserContext } from "@/context/AuthContext";
+import {
+  useGetFollowStatuses,
+  useGetUsers,
+} from "@/lib/react-query/queries";
 
 const AllUsers = () => {
+  const { user } = useUserContext();
   const {
     data: creators,
     isLoading,
     isError: isErrorCreators,
     refetch,
   } = useGetUsers();
+  const creatorIds = useMemo(
+    () => creators?.documents.map((creator) => creator.$id) || [],
+    [creators?.documents]
+  );
+  const { data: followStatuses } = useGetFollowStatuses(user.id, creatorIds);
+  const hasRequestedFollowStatuses = creatorIds.length > 0;
+  const followStatusByUserId = useMemo(
+    () =>
+      new Map(
+        (followStatuses?.documents || []).map((follow) => [
+          follow.followingId,
+          follow,
+        ])
+      ),
+    [followStatuses?.documents]
+  );
 
   if (isErrorCreators) {
     return (
@@ -41,7 +64,11 @@ const AllUsers = () => {
           <ul className="user-grid">
             {creators?.documents.map((creator) => (
               <li key={creator?.$id} className="flex-1 min-w-[200px] w-full  ">
-                <UserCard user={creator} />
+                <UserCard
+                  user={creator}
+                  followRecord={followStatusByUserId.get(creator.$id) || null}
+                  hasFollowStatus={hasRequestedFollowStatuses}
+                />
               </li>
             ))}
           </ul>

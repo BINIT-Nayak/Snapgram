@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import FollowButton from "@/components/shared/FollowButton";
-import { makeUser } from "../utils/factories";
+import { makeFollow, makeUser } from "../utils/factories";
 import { renderWithProviders } from "../utils/render";
 
 const mockMutations = vi.hoisted(() => ({
@@ -11,6 +11,7 @@ const mockMutations = vi.hoisted(() => ({
   unfollowUser: vi.fn(),
 }));
 const mockUseUserContext = vi.hoisted(() => vi.fn());
+const mockUseGetFollowStatus = vi.hoisted(() => vi.fn());
 
 vi.mock("@/context/AuthContext", () => ({
   useUserContext: () => mockUseUserContext(),
@@ -25,6 +26,7 @@ vi.mock("@/lib/react-query/queries", () => ({
     mutateAsync: mockMutations.unfollowUser,
     isLoading: false,
   }),
+  useGetFollowStatus: () => mockUseGetFollowStatus(),
 }));
 
 describe("FollowButton", () => {
@@ -34,6 +36,7 @@ describe("FollowButton", () => {
     mockUseUserContext.mockReturnValue({
       user: makeUser({ $id: "user-1", id: "user-1" }),
     });
+    mockUseGetFollowStatus.mockReturnValue({ data: null });
   });
 
   it("renders a disabled You button for the current user", () => {
@@ -46,7 +49,7 @@ describe("FollowButton", () => {
     const user = userEvent.setup();
 
     renderWithProviders(
-      <FollowButton targetUser={makeUser({ $id: "user-2", followers: [] })} />
+      <FollowButton targetUser={makeUser({ $id: "user-2" })} />
     );
 
     await user.click(screen.getByRole("button", { name: "Follow" }));
@@ -60,11 +63,12 @@ describe("FollowButton", () => {
 
   it("unfollows a user that is already followed", async () => {
     const user = userEvent.setup();
+    mockUseGetFollowStatus.mockReturnValue({
+      data: makeFollow({ followerId: "user-1", followingId: "user-2" }),
+    });
 
     renderWithProviders(
-      <FollowButton
-        targetUser={makeUser({ $id: "user-2", followers: ["user-1"] })}
-      />
+      <FollowButton targetUser={makeUser({ $id: "user-2" })} />
     );
 
     await user.click(screen.getByRole("button", { name: "Following" }));

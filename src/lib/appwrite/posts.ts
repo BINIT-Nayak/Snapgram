@@ -2,6 +2,7 @@ import { ID, Query } from "appwrite";
 
 import { NewPost, PostDocument, UpdatePostInput } from "@/types";
 import { appwriteConfig, databases } from "./config";
+import { hydratePostLikes, hydratePostsLikes } from "./relationships";
 import { deleteFile, getFilePreview, uploadFile } from "./storage";
 import { assertResult, parseTags } from "./utils";
 
@@ -35,11 +36,13 @@ export async function searchPosts(searchTerm: string) {
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
   try {
-    return await databases.listDocuments<PostDocument>(
+    const posts = await databases.listDocuments<PostDocument>(
       appwriteConfig.databaseId,
       appwriteConfig.postCollectionId,
       [Query.search("caption", searchTerm)]
     );
+
+    return hydratePostsLikes(posts);
   } catch {
     const posts = await databases.listDocuments<PostDocument>(
       appwriteConfig.databaseId,
@@ -47,7 +50,7 @@ export async function searchPosts(searchTerm: string) {
       [Query.orderDesc("$createdAt"), Query.limit(50)]
     );
 
-    return {
+    const filteredPosts = {
       ...posts,
       documents: posts.documents.filter((post) => {
         const searchableText = [
@@ -64,6 +67,8 @@ export async function searchPosts(searchTerm: string) {
         return searchableText.includes(normalizedSearch);
       }),
     };
+
+    return hydratePostsLikes(filteredPosts);
   }
 }
 
@@ -74,11 +79,13 @@ export async function getInfinitePosts({ pageParam }: { pageParam?: string }) {
     queries.push(Query.cursorAfter(pageParam));
   }
 
-  return databases.listDocuments<PostDocument>(
+  const posts = await databases.listDocuments<PostDocument>(
     appwriteConfig.databaseId,
     appwriteConfig.postCollectionId,
     queries
   );
+
+  return hydratePostsLikes(posts);
 }
 
 export async function getPostById(postId?: string) {
@@ -86,11 +93,13 @@ export async function getPostById(postId?: string) {
     throw new Error("Post ID is required.");
   }
 
-  return databases.getDocument<PostDocument>(
+  const post = await databases.getDocument<PostDocument>(
     appwriteConfig.databaseId,
     appwriteConfig.postCollectionId,
     postId
   );
+
+  return hydratePostLikes(post);
 }
 
 export async function updatePost(post: UpdatePostInput) {
@@ -158,33 +167,24 @@ export async function deletePost(postId?: string, imageId?: string) {
   return { status: "Ok" };
 }
 
-export async function likePost(postId: string, likesArray: string[]) {
-  const updatedPost = await databases.updateDocument<PostDocument>(
-    appwriteConfig.databaseId,
-    appwriteConfig.postCollectionId,
-    postId,
-    {
-      likes: likesArray,
-    }
-  );
-
-  return assertResult(updatedPost, "Post like update failed.");
-}
-
 export async function getUserPosts(userId?: string) {
   if (!userId) return;
 
-  return databases.listDocuments<PostDocument>(
+  const posts = await databases.listDocuments<PostDocument>(
     appwriteConfig.databaseId,
     appwriteConfig.postCollectionId,
     [Query.equal("creator", userId), Query.orderDesc("$createdAt")]
   );
+
+  return hydratePostsLikes(posts);
 }
 
 export async function getRecentPosts() {
-  return databases.listDocuments<PostDocument>(
+  const posts = await databases.listDocuments<PostDocument>(
     appwriteConfig.databaseId,
     appwriteConfig.postCollectionId,
     [Query.orderDesc("$createdAt"), Query.limit(20)]
   );
+
+  return hydratePostsLikes(posts);
 }

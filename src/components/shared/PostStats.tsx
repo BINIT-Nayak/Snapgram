@@ -2,9 +2,11 @@ import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
 
 import { PostDocument } from "@/types";
+import { getLikeUserId } from "@/lib/appwrite/api";
 import { checkIsLiked } from "@/lib/utils";
 import {
   useLikePost,
+  useUnlikePost,
   useSavePost,
   useDeleteSavedPost,
   useGetCurrentUser,
@@ -18,11 +20,12 @@ type PostStatsProps = {
 const PostStats = ({ post, userId }: PostStatsProps) => {
   const location = useLocation();
   const likesList = useMemo(
-    () => (post.likes || []).map((user) => user.$id),
+    () => (post.likes || []).map((like) => getLikeUserId(like)),
     [post.likes]
   );
 
   const { mutate: likePost, isLoading: isLikingPost } = useLikePost();
+  const { mutate: unlikePost, isLoading: isUnlikingPost } = useUnlikePost();
   const { mutate: savePost, isLoading: isSavingPost } = useSavePost();
   const { mutate: deleteSavePost, isLoading: isDeletingSavedPost } =
     useDeleteSavedPost();
@@ -37,21 +40,25 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
   });
   const isSaved = !!savedPostRecord;
   const isLiked = checkIsLiked(likesList, userId);
+  const likedPostRecord = post.likes?.find(
+    (like) => getLikeUserId(like) === userId
+  );
 
   const handleLikePost = (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
     e.stopPropagation();
 
-    let likesArray = [...likesList];
-
-    if (likesArray.includes(userId)) {
-      likesArray = likesArray.filter((Id) => Id !== userId);
-    } else {
-      likesArray.push(userId);
+    if (likedPostRecord) {
+      return unlikePost({
+        likeRecordId: likedPostRecord.$id,
+        userId,
+        postId: post.$id,
+        post,
+      });
     }
 
-    likePost({ postId: post.$id, likesArray, userId, post });
+    likePost({ userId, postId: post.$id, post });
   };
 
   const handleSavePost = (
@@ -80,7 +87,7 @@ const PostStats = ({ post, userId }: PostStatsProps) => {
         <button
           type="button"
           aria-label={isLiked ? "Unlike post" : "Like post"}
-          disabled={isLikingPost}
+          disabled={isLikingPost || isUnlikingPost}
           onClick={(e) => handleLikePost(e)}
           className={`post-action-btn ${
             isLiked ? "post-action-btn_liked" : ""

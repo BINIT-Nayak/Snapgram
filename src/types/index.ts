@@ -7,7 +7,14 @@ import type {
   UpdateUserInput,
 } from "./forms";
 
-export type { DocumentList, PostDocument, SaveDocument, UserDocument } from "./appwrite";
+export type {
+  DocumentList,
+  FollowDocument,
+  LikeDocument,
+  PostDocument,
+  SaveDocument,
+  UserDocument,
+} from "./appwrite";
 export type {
   AuthUser,
   NewPost,

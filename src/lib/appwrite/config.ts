@@ -10,6 +10,10 @@ const getRequiredEnv = (key: string) => {
   return value;
 };
 
+const getOptionalEnv = (key: string) => {
+  return import.meta.env[key] || "";
+};
+
 export const appwriteConfig = {
   url: getRequiredEnv("VITE_APPWRITE_URL"),
   projectId: getRequiredEnv("VITE_APPWRITE_PROJECT_ID"),
@@ -18,6 +22,8 @@ export const appwriteConfig = {
   userCollectionId: getRequiredEnv("VITE_APPWRITE_USER_COLLECTION_ID"),
   postCollectionId: getRequiredEnv("VITE_APPWRITE_POST_COLLECTION_ID"),
   savesCollectionId: getRequiredEnv("VITE_APPWRITE_SAVES_COLLECTION_ID"),
+  likesCollectionId: getOptionalEnv("VITE_APPWRITE_LIKES_COLLECTION_ID"),
+  followsCollectionId: getOptionalEnv("VITE_APPWRITE_FOLLOWS_COLLECTION_ID"),
 };
 
 export const client = new Client();

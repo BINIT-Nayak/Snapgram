@@ -42,6 +42,9 @@ VITE_APPWRITE_STORAGE_ID=''
 VITE_APPWRITE_USER_COLLECTION_ID=''
 VITE_APPWRITE_POST_COLLECTION_ID=''
 VITE_APPWRITE_SAVES_COLLECTION_ID=''
+# Optional while migrating. Required for like/follow relationship writes.
+VITE_APPWRITE_LIKES_COLLECTION_ID=''
+VITE_APPWRITE_FOLLOWS_COLLECTION_ID=''
 ```
 
 Run the dev server:
@@ -93,7 +96,7 @@ In Appwrite, create:
 - One project
 - One database
 - One storage bucket
-- Three collections: users, posts, saves
+- Five collections: users, posts, saves, likes, follows
 
 Add a Web platform for local development:
 
@@ -116,8 +119,6 @@ email       string
 imageUrl    string
 imageId     string, optional
 bio         string
-followers   string array, optional
-following   string array, optional
 posts       relationship to posts
 save        relationship to saves
 ```
@@ -131,7 +132,6 @@ imageUrl    string
 imageId     string
 location    string
 tags        string array
-likes       relationship/string array depending on schema
 ```
 
 Saves collection:
@@ -140,6 +140,26 @@ Saves collection:
 user        relationship to users
 post        relationship to posts
 ```
+
+Likes collection:
+
+```text
+userId      string
+postId      string
+createdAt   provided by Appwrite as $createdAt
+```
+
+Follows collection:
+
+```text
+followerId   string
+followingId  string
+createdAt    provided by Appwrite as $createdAt
+```
+
+Likes and follows use one document per relationship instead of read-modify-writing arrays on posts or users. Configure Appwrite permissions so authenticated users can create/delete their own relationship documents, and keep each `(userId, postId)` like and `(followerId, followingId)` follow unique. The client also uses deterministic document IDs so repeated actions are idempotent.
+
+If these two collection IDs are missing or still placeholders, Snapgram will still load feeds/profiles with empty like/follow counts. Like and follow writes require the real collection IDs.
 
 ### Permissions
 
@@ -212,6 +232,7 @@ src/lib/appwrite/auth.ts
 src/lib/appwrite/posts.ts
 src/lib/appwrite/users.ts
 src/lib/appwrite/saves.ts
+src/lib/appwrite/relationships.ts
 src/lib/appwrite/storage.ts
 src/lib/appwrite/config.ts
 src/lib/appwrite/utils.ts

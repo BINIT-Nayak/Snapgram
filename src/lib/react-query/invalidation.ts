@@ -29,6 +29,12 @@ export const invalidateSavedPosts = (queryClient: QueryClient) => {
   });
 };
 
+export const invalidateLikedPosts = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({
+    queryKey: [QUERY_KEYS.GET_LIKED_POSTS],
+  });
+};
+
 export const invalidateUsers = (queryClient: QueryClient) => {
   queryClient.invalidateQueries({
     queryKey: [QUERY_KEYS.GET_USERS],
@@ -50,5 +56,15 @@ export const invalidateUserDetail = (
 ) => {
   queryClient.invalidateQueries({
     queryKey: [QUERY_KEYS.GET_USER_BY_ID, userId],
+  });
+};
+
+export const invalidateFollowStatus = (
+  queryClient: QueryClient,
+  currentUserId?: string,
+  targetUserId?: string
+) => {
+  queryClient.invalidateQueries({
+    queryKey: [QUERY_KEYS.GET_FOLLOW_STATUS, currentUserId, targetUserId],
   });
 };

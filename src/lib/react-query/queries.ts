@@ -12,12 +12,12 @@ import {
 import { QUERY_KEYS } from "@/lib/react-query/queryKeys";
 import {
   invalidateCurrentUser,
+  invalidateLikedPosts,
   invalidatePostDetail,
   invalidatePostLists,
   invalidateSavedPosts,
   invalidateUserDetail,
   invalidateUserPosts,
-  invalidateUsers,
 } from "@/lib/react-query/invalidation";
 import {
   createUserAccount,
@@ -31,10 +31,14 @@ import {
   getUserPosts,
   deletePost,
   likePost,
+  unlikePost,
   getUserById,
   followUser,
   updateUser,
   unfollowUser,
+  getFollowByUsers,
+  getFollowsByFollowerAndTargets,
+  getLikedPosts,
   getRecentPosts,
   getInfinitePosts,
   searchPosts,
@@ -44,6 +48,8 @@ import {
 } from "@/lib/appwrite/api";
 import {
   DocumentList,
+  FollowDocument,
+  LikeDocument,
   NewPost,
   NewUser,
   PostDocument,
@@ -59,9 +65,15 @@ type QuerySnapshot = Array<{
 }>;
 
 type LikePostInput = {
-  postId: string;
-  likesArray: string[];
   userId: string;
+  postId: string;
+  post: PostDocument;
+};
+
+type UnlikePostInput = {
+  likeRecordId: string;
+  userId: string;
+  postId: string;
   post: PostDocument;
 };
 
@@ -185,52 +197,40 @@ const updatePostCaches = (
   );
 };
 
-const buildOptimisticLikes = (
-  post: PostDocument,
-  likesArray: string[],
-  currentUser?: UserDocument | null
-) =>
-  likesArray.map((likedUserId) => {
-    const existingLikedUser = (post.likes || []).find(
-      (likedUser) => likedUser.$id === likedUserId
-    );
+const buildOptimisticLikes = (post: PostDocument, userId: string) => {
+  const existingLike = (post.likes || []).find(
+    (like) => like.userId === userId
+  );
 
-    if (existingLikedUser) return existingLikedUser;
-    if (currentUser?.$id === likedUserId) return currentUser;
+  if (existingLike) return post.likes || [];
 
-    return { $id: likedUserId } as UserDocument;
-  });
+  return [
+    {
+      $id: `optimistic-like-${post.$id}-${userId}`,
+      userId,
+      postId: post.$id,
+    } as LikeDocument,
+    ...(post.likes || []),
+  ];
+};
 
-const updateCurrentUserLikedPosts = (
+const updateLikedPostLists = (
   queryClient: QueryClient,
   userId: string,
   post: PostDocument,
   isLiked: boolean
 ) => {
-  const updateUser = (user?: UserDocument | null) => {
-    if (!user || user.$id !== userId) return user;
+  queryClient.setQueriesData<PostDocument[]>(
+    { queryKey: [QUERY_KEYS.GET_LIKED_POSTS, userId] },
+    (posts) => {
+      if (!posts) return posts;
 
-    const likedPosts = user.liked || [];
-    const nextLikedPosts = isLiked
-      ? [
-          post,
-          ...likedPosts.filter((likedPost) => likedPost.$id !== post.$id),
-        ]
-      : likedPosts.filter((likedPost) => likedPost.$id !== post.$id);
+      if (isLiked) {
+        return [post, ...posts.filter((likedPost) => likedPost.$id !== post.$id)];
+      }
 
-    return {
-      ...user,
-      liked: nextLikedPosts,
-    };
-  };
-
-  queryClient.setQueryData<UserDocument | null>(
-    [QUERY_KEYS.GET_CURRENT_USER],
-    updateUser
-  );
-  queryClient.setQueryData<UserDocument>(
-    [QUERY_KEYS.GET_USER_BY_ID, userId],
-    (user) => (user ? (updateUser(user) as UserDocument) : user)
+      return posts.filter((likedPost) => likedPost.$id !== post.$id);
+    }
   );
 };
 
@@ -297,6 +297,7 @@ const cancelPostInteractionQueries = (queryClient: QueryClient, postId: string) 
     queryClient.cancelQueries({ queryKey: [QUERY_KEYS.SEARCH_POSTS] }),
     queryClient.cancelQueries({ queryKey: [QUERY_KEYS.GET_CURRENT_USER] }),
     queryClient.cancelQueries({ queryKey: [QUERY_KEYS.GET_SAVED_POSTS] }),
+    queryClient.cancelQueries({ queryKey: [QUERY_KEYS.GET_LIKED_POSTS] }),
   ]);
 
 const postInteractionQueryKeys = (postId: string): QueryKey[] => [
@@ -307,6 +308,7 @@ const postInteractionQueryKeys = (postId: string): QueryKey[] => [
   [QUERY_KEYS.SEARCH_POSTS],
   [QUERY_KEYS.GET_CURRENT_USER],
   [QUERY_KEYS.GET_SAVED_POSTS],
+  [QUERY_KEYS.GET_LIKED_POSTS],
 ];
 
 export const useCreateUserAccount = () => {
@@ -415,8 +417,7 @@ export const useDeletePost = () => {
 export const useLikePost = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ postId, likesArray }: LikePostInput) =>
-      likePost(postId, likesArray),
+    mutationFn: ({ userId, postId }: LikePostInput) => likePost(userId, postId),
     onMutate: async (variables: LikePostInput) => {
       await cancelPostInteractionQueries(queryClient, variables.postId);
 
@@ -424,20 +425,11 @@ export const useLikePost = () => {
         queryClient,
         postInteractionQueryKeys(variables.postId)
       );
-      const currentUser = queryClient.getQueryData<UserDocument | null>([
-        QUERY_KEYS.GET_CURRENT_USER,
-      ]);
-
       updatePostCaches(queryClient, variables.postId, (post) => ({
         ...post,
-        likes: buildOptimisticLikes(post, variables.likesArray, currentUser),
+        likes: buildOptimisticLikes(post, variables.userId),
       }));
-      updateCurrentUserLikedPosts(
-        queryClient,
-        variables.userId,
-        variables.post,
-        variables.likesArray.includes(variables.userId)
-      );
+      updateLikedPostLists(queryClient, variables.userId, variables.post, true);
 
       return { previousQueries };
     },
@@ -449,6 +441,44 @@ export const useLikePost = () => {
       invalidatePostLists(queryClient);
       invalidateCurrentUser(queryClient);
       invalidateUserPosts(queryClient);
+      invalidateLikedPosts(queryClient);
+    },
+  });
+};
+
+export const useUnlikePost = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ likeRecordId }: UnlikePostInput) => unlikePost(likeRecordId),
+    onMutate: async (variables: UnlikePostInput) => {
+      await cancelPostInteractionQueries(queryClient, variables.postId);
+
+      const previousQueries = snapshotQueries(
+        queryClient,
+        postInteractionQueryKeys(variables.postId)
+      );
+
+      updatePostCaches(queryClient, variables.postId, (post) => ({
+        ...post,
+        likes: (post.likes || []).filter(
+          (like) =>
+            like.$id !== variables.likeRecordId &&
+            like.userId !== variables.userId
+        ),
+      }));
+      updateLikedPostLists(queryClient, variables.userId, variables.post, false);
+
+      return { previousQueries };
+    },
+    onError: (_error, _variables, context) => {
+      restoreQueries(queryClient, context?.previousQueries);
+    },
+    onSettled: (_data, _error, variables) => {
+      invalidatePostDetail(queryClient, variables?.postId);
+      invalidatePostLists(queryClient);
+      invalidateCurrentUser(queryClient);
+      invalidateUserPosts(queryClient);
+      invalidateLikedPosts(queryClient);
     },
   });
 };
@@ -554,6 +584,14 @@ export const useGetSavedPosts = (userId?: string) => {
   });
 };
 
+export const useGetLikedPosts = (userId?: string) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_LIKED_POSTS, userId],
+    queryFn: () => getLikedPosts(userId),
+    enabled: !!userId,
+  });
+};
+
 export const useGetCurrentUser = () => {
   return useQuery({
     queryKey: [QUERY_KEYS.GET_CURRENT_USER],
@@ -592,14 +630,100 @@ type FollowMutationInput = {
   targetUserId: string;
 };
 
-const invalidateFollowState = (
-  queryClient: ReturnType<typeof useQueryClient>,
-  { currentUserId, targetUserId }: FollowMutationInput
+const updateUserFollowCounts = (
+  queryClient: QueryClient,
+  { currentUserId, targetUserId }: FollowMutationInput,
+  delta: 1 | -1
 ) => {
-  invalidateCurrentUser(queryClient);
-  invalidateUsers(queryClient);
-  invalidateUserDetail(queryClient, currentUserId);
-  invalidateUserDetail(queryClient, targetUserId);
+  const updateUser = (user?: UserDocument | null) => {
+    if (!user) return user;
+
+    if (user.$id === currentUserId) {
+      return {
+        ...user,
+        followingCount: Math.max((user.followingCount || 0) + delta, 0),
+      };
+    }
+
+    if (user.$id === targetUserId) {
+      return {
+        ...user,
+        followersCount: Math.max((user.followersCount || 0) + delta, 0),
+      };
+    }
+
+    return user;
+  };
+
+  queryClient.setQueryData<UserDocument | null>(
+    [QUERY_KEYS.GET_CURRENT_USER],
+    updateUser
+  );
+  queryClient.setQueryData<UserDocument>(
+    [QUERY_KEYS.GET_USER_BY_ID, currentUserId],
+    (user) => (user ? (updateUser(user) as UserDocument) : user)
+  );
+  queryClient.setQueryData<UserDocument>(
+    [QUERY_KEYS.GET_USER_BY_ID, targetUserId],
+    (user) => (user ? (updateUser(user) as UserDocument) : user)
+  );
+  queryClient.setQueriesData<DocumentList<UserDocument>>(
+    { queryKey: [QUERY_KEYS.GET_USERS] },
+    (users) =>
+      users
+        ? {
+            ...users,
+            documents: users.documents.map(
+              (user) => updateUser(user) as UserDocument
+            ),
+          }
+        : users
+  );
+};
+
+const followQueryKeys = ({
+  currentUserId,
+  targetUserId,
+}: FollowMutationInput): QueryKey[] => [
+  [QUERY_KEYS.GET_CURRENT_USER],
+  [QUERY_KEYS.GET_USERS],
+  [QUERY_KEYS.GET_USER_BY_ID, currentUserId],
+  [QUERY_KEYS.GET_USER_BY_ID, targetUserId],
+  [QUERY_KEYS.GET_FOLLOW_STATUS, currentUserId, targetUserId],
+];
+
+export const useGetFollowStatus = (
+  currentUserId?: string,
+  targetUserId?: string,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.GET_FOLLOW_STATUS, currentUserId, targetUserId],
+    queryFn: () =>
+      currentUserId && targetUserId
+        ? getFollowByUsers(currentUserId, targetUserId)
+        : null,
+    enabled:
+      enabled && !!currentUserId && !!targetUserId && currentUserId !== targetUserId,
+  });
+};
+
+export const useGetFollowStatuses = (
+  currentUserId?: string,
+  targetUserIds: string[] = []
+) => {
+  const sortedTargetIds = [...new Set(targetUserIds)].sort();
+
+  return useQuery({
+    queryKey: [
+      QUERY_KEYS.GET_FOLLOW_STATUSES,
+      currentUserId,
+      sortedTargetIds.join(","),
+    ],
+    queryFn: () =>
+      getFollowsByFollowerAndTargets(currentUserId, sortedTargetIds),
+    enabled: !!currentUserId && sortedTargetIds.length > 0,
+  });
 };
 
 export const useFollowUser = () => {
@@ -608,8 +732,47 @@ export const useFollowUser = () => {
   return useMutation({
     mutationFn: ({ currentUserId, targetUserId }: FollowMutationInput) =>
       followUser(currentUserId, targetUserId),
-    onSuccess: (_data, variables) => {
-      invalidateFollowState(queryClient, variables);
+    onMutate: async (variables) => {
+      await Promise.all(
+        followQueryKeys(variables).map((queryKey) =>
+          queryClient.cancelQueries({ queryKey })
+        )
+      );
+
+      const previousQueries = snapshotQueries(
+        queryClient,
+        followQueryKeys(variables)
+      );
+      const optimisticFollow = {
+        $id: `optimistic-follow-${variables.currentUserId}-${variables.targetUserId}`,
+        followerId: variables.currentUserId,
+        followingId: variables.targetUserId,
+      } as FollowDocument;
+
+      queryClient.setQueryData(
+        [
+          QUERY_KEYS.GET_FOLLOW_STATUS,
+          variables.currentUserId,
+          variables.targetUserId,
+        ],
+        optimisticFollow
+      );
+      updateUserFollowCounts(queryClient, variables, 1);
+
+      return { previousQueries };
+    },
+    onError: (_error, _variables, context) => {
+      restoreQueries(queryClient, context?.previousQueries);
+    },
+    onSuccess: (follow, variables) => {
+      queryClient.setQueryData(
+        [
+          QUERY_KEYS.GET_FOLLOW_STATUS,
+          variables.currentUserId,
+          variables.targetUserId,
+        ],
+        follow
+      );
     },
   });
 };
@@ -620,8 +783,42 @@ export const useUnfollowUser = () => {
   return useMutation({
     mutationFn: ({ currentUserId, targetUserId }: FollowMutationInput) =>
       unfollowUser(currentUserId, targetUserId),
+    onMutate: async (variables) => {
+      await Promise.all(
+        followQueryKeys(variables).map((queryKey) =>
+          queryClient.cancelQueries({ queryKey })
+        )
+      );
+
+      const previousQueries = snapshotQueries(
+        queryClient,
+        followQueryKeys(variables)
+      );
+
+      queryClient.setQueryData(
+        [
+          QUERY_KEYS.GET_FOLLOW_STATUS,
+          variables.currentUserId,
+          variables.targetUserId,
+        ],
+        null
+      );
+      updateUserFollowCounts(queryClient, variables, -1);
+
+      return { previousQueries };
+    },
+    onError: (_error, _variables, context) => {
+      restoreQueries(queryClient, context?.previousQueries);
+    },
     onSuccess: (_data, variables) => {
-      invalidateFollowState(queryClient, variables);
+      queryClient.setQueryData(
+        [
+          QUERY_KEYS.GET_FOLLOW_STATUS,
+          variables.currentUserId,
+          variables.targetUserId,
+        ],
+        null
+      );
     },
   });
 };

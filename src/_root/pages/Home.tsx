@@ -2,9 +2,15 @@ import { useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { ErrorState, Loader, PostCard, UserCard } from "@/components/shared";
-import { useGetRecentPosts, useGetUsers } from "@/lib/react-query/queries";
+import { useUserContext } from "@/context/AuthContext";
+import {
+  useGetFollowStatuses,
+  useGetRecentPosts,
+  useGetUsers,
+} from "@/lib/react-query/queries";
 
 const Home = () => {
+  const { user } = useUserContext();
   const feedScrollRef = useRef<HTMLDivElement>(null);
   const {
     data: posts,
@@ -19,6 +25,22 @@ const Home = () => {
     refetch: refetchCreators,
   } = useGetUsers(10);
   const feedPosts = useMemo(() => posts?.documents || [], [posts?.documents]);
+  const creatorIds = useMemo(
+    () => creators?.documents.map((creator) => creator.$id) || [],
+    [creators?.documents]
+  );
+  const { data: followStatuses } = useGetFollowStatuses(user.id, creatorIds);
+  const hasRequestedFollowStatuses = creatorIds.length > 0;
+  const followStatusByUserId = useMemo(
+    () =>
+      new Map(
+        (followStatuses?.documents || []).map((follow) => [
+          follow.followingId,
+          follow,
+        ])
+      ),
+    [followStatuses?.documents]
+  );
   const feedVirtualizer = useVirtualizer({
     count: feedPosts.length,
     getScrollElement: () => feedScrollRef.current,
@@ -89,7 +111,11 @@ const Home = () => {
           <ul className="grid 2xl:grid-cols-2 gap-6">
             {creators?.documents.map((creator) => (
               <li key={creator?.$id}>
-                <UserCard user={creator} />
+                <UserCard
+                  user={creator}
+                  followRecord={followStatusByUserId.get(creator.$id) || null}
+                  hasFollowStatus={hasRequestedFollowStatuses}
+                />
               </li>
             ))}
           </ul>

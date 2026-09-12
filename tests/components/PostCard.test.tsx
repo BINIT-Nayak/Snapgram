@@ -18,7 +18,6 @@ vi.mock("@/lib/appwrite/api", () => ({
     Promise.resolve({
       $id: "user-1",
       save: [],
-      liked: [],
     })
   ),
   signOutAccount: vi.fn(),
@@ -29,16 +28,22 @@ vi.mock("@/lib/appwrite/api", () => ({
   getUserPosts: vi.fn(),
   deletePost: vi.fn(),
   likePost: vi.fn(),
+  unlikePost: vi.fn(),
   getUserById: vi.fn(),
   followUser: vi.fn(),
+  getFollowByUsers: vi.fn(),
   updateUser: vi.fn(),
   unfollowUser: vi.fn(),
+  getLikedPosts: vi.fn(),
   getRecentPosts: vi.fn(),
   getInfinitePosts: vi.fn(),
   searchPosts: vi.fn(),
   savePost: vi.fn(),
   deleteSavedPost: vi.fn(),
   getSavedPosts: vi.fn(),
+  getLikeUserId: vi.fn((like: { userId?: string } | string) =>
+    typeof like === "string" ? like : like.userId
+  ),
   getFilePreview: vi.fn((fileId: string) => `/storage/${fileId}`),
 }));
 

@@ -1,6 +1,13 @@
 import { Models } from "appwrite";
 
-import { DocumentList, PostDocument, SaveDocument, UserDocument } from "@/types";
+import {
+  DocumentList,
+  FollowDocument,
+  LikeDocument,
+  PostDocument,
+  SaveDocument,
+  UserDocument,
+} from "@/types";
 
 export const makeUser = (
   overrides: Partial<UserDocument> = {}
@@ -19,10 +26,9 @@ export const makeUser = (
     imageUrl: "/avatar.jpg",
     imageId: "avatar-file",
     bio: "Building Snapgram",
-    followers: [],
-    following: [],
+    followersCount: 0,
+    followingCount: 0,
     save: [],
-    liked: [],
     ...overrides,
   }) as UserDocument;
 
@@ -60,6 +66,36 @@ export const makeSave = (
     post: "post-1",
     ...overrides,
   }) as SaveDocument;
+
+export const makeLike = (
+  overrides: Partial<LikeDocument> = {}
+): LikeDocument =>
+  ({
+    $id: "like-1",
+    $createdAt: "2026-01-01T00:00:00.000Z",
+    $updatedAt: "2026-01-01T00:00:00.000Z",
+    $collectionId: "likes",
+    $databaseId: "database",
+    $permissions: [],
+    userId: "user-1",
+    postId: "post-1",
+    ...overrides,
+  }) as LikeDocument;
+
+export const makeFollow = (
+  overrides: Partial<FollowDocument> = {}
+): FollowDocument =>
+  ({
+    $id: "follow-1",
+    $createdAt: "2026-01-01T00:00:00.000Z",
+    $updatedAt: "2026-01-01T00:00:00.000Z",
+    $collectionId: "follows",
+    $databaseId: "database",
+    $permissions: [],
+    followerId: "user-1",
+    followingId: "user-2",
+    ...overrides,
+  }) as FollowDocument;
 
 export const makeDocumentList = <T extends Models.Document>(
   documents: T[]

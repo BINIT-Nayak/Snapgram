@@ -6,13 +6,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PostStats from "@/components/shared/PostStats";
 import { useGetPostById } from "@/lib/react-query/queries";
 import { QUERY_KEYS } from "@/lib/react-query/queryKeys";
-import { makeDocumentList, makePost, makeSave, makeUser } from "../utils/factories";
+import {
+  makeDocumentList,
+  makeLike,
+  makePost,
+  makeSave,
+  makeUser,
+} from "../utils/factories";
 import { createTestQueryClient, renderWithProviders } from "../utils/render";
 
 const mockApi = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   getPostById: vi.fn(),
   likePost: vi.fn(),
+  unlikePost: vi.fn(),
   savePost: vi.fn(),
   deleteSavedPost: vi.fn(),
 }));
@@ -29,16 +36,22 @@ vi.mock("@/lib/appwrite/api", () => ({
   getUserPosts: vi.fn(),
   deletePost: vi.fn(),
   likePost: mockApi.likePost,
+  unlikePost: mockApi.unlikePost,
   getUserById: vi.fn(),
   followUser: vi.fn(),
   updateUser: vi.fn(),
   unfollowUser: vi.fn(),
+  getFollowByUsers: vi.fn(),
+  getLikedPosts: vi.fn(),
   getRecentPosts: vi.fn(),
   getInfinitePosts: vi.fn(),
   searchPosts: vi.fn(),
   savePost: mockApi.savePost,
   deleteSavedPost: mockApi.deleteSavedPost,
   getSavedPosts: vi.fn(),
+  getLikeUserId: vi.fn((like: { userId?: string } | string) =>
+    typeof like === "string" ? like : like.userId
+  ),
 }));
 
 const PostStatsFromCache = ({ postId }: { postId: string }) => {
@@ -104,6 +117,48 @@ describe("post interaction optimistic cache updates", () => {
       expect(screen.getByText("0")).toBeInTheDocument();
     });
     expect(screen.getByRole("button", { name: "Like post" })).toBeInTheDocument();
+  });
+
+  it("removes a like immediately and rolls back when the API fails", async () => {
+    const user = userEvent.setup();
+    const queryClient = createTestQueryClient();
+    const existingLike = makeLike({
+      $id: "like-1",
+      userId: "user-1",
+      postId: "post-1",
+    });
+    const post = makePost({
+      $id: "post-1",
+      likes: [existingLike],
+      creator: makeUser({ $id: "creator-1" }),
+    });
+    let rejectUnlike!: (error: Error) => void;
+
+    queryClient.setQueryData(
+      [QUERY_KEYS.GET_CURRENT_USER],
+      makeUser({ $id: "user-1" })
+    );
+    queryClient.setQueryData([QUERY_KEYS.GET_POST_BY_ID, post.$id], post);
+    mockApi.getPostById.mockResolvedValue(post);
+    mockApi.unlikePost.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        rejectUnlike = reject;
+      })
+    );
+
+    renderWithProviders(<PostStatsFromCache postId="post-1" />, { queryClient });
+
+    await user.click(screen.getByRole("button", { name: "Unlike post" }));
+
+    expect(screen.getByText("0")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Like post" })).toBeInTheDocument();
+
+    rejectUnlike(new Error("Unlike failed"));
+
+    await waitFor(() => {
+      expect(screen.getByText("1")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Unlike post" })).toBeInTheDocument();
   });
 
   it("saves immediately and rolls back when save creation fails", async () => {

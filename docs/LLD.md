@@ -61,6 +61,7 @@ src/
       auth.ts
       config.ts
       posts.ts
+      relationships.ts
       saves.ts
       storage.ts
       users.ts
@@ -188,9 +189,11 @@ VITE_APPWRITE_STORAGE_ID
 VITE_APPWRITE_USER_COLLECTION_ID
 VITE_APPWRITE_POST_COLLECTION_ID
 VITE_APPWRITE_SAVES_COLLECTION_ID
+VITE_APPWRITE_LIKES_COLLECTION_ID
+VITE_APPWRITE_FOLLOWS_COLLECTION_ID
 ```
 
-If any variable is missing, module loading throws an error. This means the app fails fast before rendering pages that depend on Appwrite.
+Core Appwrite variables are required and fail fast if missing. The likes/follows collection IDs are optional during migration so existing feeds/profiles can still load; like/follow writes require real collection IDs.
 
 ## 6. Domain API Modules
 
@@ -212,12 +215,26 @@ If any variable is missing, module loading throws an error. This means the app f
 | `createPost` | Uploads image, creates file view URL, creates post document. |
 | `searchPosts` | Uses Appwrite caption search; falls back to client-side filtering across recent posts. |
 | `getInfinitePosts` | Lists posts ordered by `$updatedAt`, limited to 9, cursor-based. |
-| `getPostById` | Fetches one post document. Throws when ID is missing. |
+| `getPostById` | Fetches one post document and hydrates likes from the likes collection. Throws when ID is missing. |
 | `updatePost` | Optionally uploads replacement image, updates post, deletes old image after success. |
 | `deletePost` | Deletes post document, then deletes storage image. |
-| `likePost` | Updates the post `likes` array. |
-| `getUserPosts` | Fetches posts where `creator` equals user ID. |
-| `getRecentPosts` | Fetches latest 20 posts by `$createdAt`. |
+| `getUserPosts` | Fetches posts where `creator` equals user ID and hydrates likes. |
+| `getRecentPosts` | Fetches latest 20 posts by `$createdAt` and hydrates likes. |
+
+### `relationships.ts`
+
+| Function | Behavior |
+| --- | --- |
+| `likePost` | Creates one like relationship document for `(userId, postId)` using a deterministic document ID. |
+| `unlikePost` | Deletes one like relationship document by ID. |
+| `getLikedPosts` | Lists like documents for a user and fetches the related posts. |
+| `getLikeByUserAndPost` | Looks up one like relationship for idempotency/status checks. |
+| `hydratePostLikes` | Attaches the post's like documents to a fetched post. |
+| `hydratePostsLikes` | Batches like hydration for post lists. |
+| `getFollowByUsers` | Looks up the follower-to-following relationship. |
+| `followUser` | Creates one follow relationship document for `(followerId, followingId)`. |
+| `unfollowUser` | Deletes the follow relationship document if it exists. |
+| `hydrateUserFollowCounts` | Adds follower/following counts from the follows collection. |
 
 ### `saves.ts`
 
@@ -234,8 +251,6 @@ If any variable is missing, module loading throws an error. This means the app f
 | `getUsers` | Lists users by newest first; optional limit. |
 | `getUserById` | Fetches one user document. |
 | `updateUser` | Optionally uploads replacement profile image, updates name/bio/image, deletes old image after success. |
-| `followUser` | Adds target user ID to current user's `following` and current user ID to target user's `followers`. |
-| `unfollowUser` | Removes the same IDs from both arrays. |
 
 ### `storage.ts`
 
@@ -257,9 +272,11 @@ If any variable is missing, module loading throws an error. This means the app f
 | `useGetPostById` | `GET_POST_BY_ID, postId` | `getPostById` |
 | `useGetUserPosts` | `GET_USER_POSTS, userId` | `getUserPosts` |
 | `useGetSavedPosts` | `GET_SAVED_POSTS, userId` | `getSavedPosts` |
+| `useGetLikedPosts` | `GET_LIKED_POSTS, userId` | `getLikedPosts` |
 | `useGetCurrentUser` | `GET_CURRENT_USER` | `getCurrentUser` |
 | `useGetUsers` | `GET_USERS` | `getUsers` |
 | `useGetUserById` | `GET_USER_BY_ID, userId` | `getUserById` |
+| `useGetFollowStatus` | `GET_FOLLOW_STATUS, currentUserId, targetUserId` | `getFollowByUsers` |
 
 ### Mutation Hooks
 
@@ -268,12 +285,13 @@ If any variable is missing, module loading throws an error. This means the app f
 | `useCreatePost` | `createPost` | Post lists, user posts |
 | `useUpdatePost` | `updatePost` | Post detail, post lists, user posts |
 | `useDeletePost` | `deletePost` | Post lists, user posts |
-| `useLikePost` | `likePost` | Post detail, post lists, current user |
+| `useLikePost` | `likePost` | Post detail, post lists, liked posts |
+| `useUnlikePost` | `unlikePost` | Post detail, post lists, liked posts |
 | `useSavePost` | `savePost` | Post lists, current user, saved posts |
 | `useDeleteSavedPost` | `deleteSavedPost` | Post lists, current user, saved posts |
 | `useUpdateUser` | `updateUser` | Current user, user detail |
-| `useFollowUser` | `followUser` | Current user, users list, both user details |
-| `useUnfollowUser` | `unfollowUser` | Current user, users list, both user details |
+| `useFollowUser` | `followUser` | Current user, users list, both user details, follow status |
+| `useUnfollowUser` | `unfollowUser` | Current user, users list, both user details, follow status |
 
 ## 8. Form Designs
 
@@ -371,9 +389,10 @@ Responsibilities:
 
 Responsibilities:
 
-- Derive likes array from `post.likes`.
+- Derive liked user IDs from the hydrated like relationship documents on `post.likes`.
 - Fetch current user to check saved state.
 - Trigger React Query cache-level optimistic like updates.
+- Trigger React Query cache-level optimistic unlike updates.
 - Trigger React Query cache-level optimistic save updates.
 - Rely on mutation rollback snapshots when Appwrite writes fail.
 
@@ -382,12 +401,12 @@ Key behavior:
 ```mermaid
 flowchart TD
   Click[User clicks like]
-  HasLiked{User ID in likes?}
-  Remove[Remove user ID]
-  Add[Add user ID]
+  HasLiked{Like document exists?}
+  Remove[Remove like document from cache]
+  Add[Add optimistic like document to cache]
   Snapshot[Snapshot affected query caches]
   Cache[Update React Query post caches]
-  Mutate[Update post document]
+  Mutate[Create or delete Likes document]
   Error{Error?}
   Rollback[Restore previous query snapshots]
   Done[Invalidate caches]
@@ -409,8 +428,8 @@ flowchart TD
 Responsibilities:
 
 - Hide self-follow by rendering a disabled `You` button.
-- Check whether current user is in target user's followers.
-- Optimistically toggle follow state.
+- Query whether a follow document exists for current user and target user.
+- Optimistically toggle follow status and follower/following counts.
 - Call follow/unfollow mutation.
 - Roll back and toast on failure.
 
@@ -864,26 +883,24 @@ flowchart TD
   Click[User clicks FollowButton]
   OwnProfile{Current user equals target user?}
   Stop[Do nothing or show You]
-  Following{Already following?}
-  Toggle[Optimistically toggle button state]
-  FetchBoth[Fetch current and target users]
-  Follow[Add target to following and current to followers]
-  Unfollow[Remove target from following and current from followers]
-  UpdateBoth[Update both user documents]
+  Following{Follow document exists?}
+  Snapshot[Snapshot follow/status/user caches]
+  Toggle[Optimistically toggle status and counts]
+  Follow[Create Follows document]
+  Unfollow[Delete Follows document]
   Success{Mutation succeeds?}
-  Invalidate[Invalidate current user, users list, both profiles]
-  Rollback[Rollback button state and show toast]
+  Invalidate[Invalidate follow status, users list, both profiles]
+  Rollback[Restore cache snapshots and show toast]
 
   Click --> OwnProfile
   OwnProfile -->|Yes| Stop
   OwnProfile -->|No| Following
-  Following --> Toggle
-  Toggle --> FetchBoth
-  FetchBoth -->|Follow path| Follow
-  FetchBoth -->|Unfollow path| Unfollow
-  Follow --> UpdateBoth
-  Unfollow --> UpdateBoth
-  UpdateBoth --> Success
+  Following --> Snapshot
+  Snapshot --> Toggle
+  Toggle -->|Follow path| Follow
+  Toggle -->|Unfollow path| Unfollow
+  Follow --> Success
+  Unfollow --> Success
   Success -->|Yes| Invalidate
   Success -->|No| Rollback
 ```
@@ -975,7 +992,8 @@ Recommended production hardening:
 - Only creators should update/delete their own posts.
 - Users should only update their own user document.
 - Users should only create/delete their own save records.
-- Array fields such as `likes`, `followers`, and `following` need careful permissions or server-side functions if stronger consistency is required.
+- Users should only create/delete their own like and follow relationship records.
+- Each `(userId, postId)` like and `(followerId, followingId)` follow should remain unique through deterministic IDs or backend constraints.
 
 ## 18. Edge Cases
 

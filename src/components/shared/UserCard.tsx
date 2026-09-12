@@ -1,13 +1,15 @@
 import { Link } from "react-router-dom";
 
-import { UserDocument } from "@/types";
+import { FollowDocument, UserDocument } from "@/types";
 import FollowButton from "./FollowButton";
 
 type UserCardProps = {
   user: UserDocument;
+  followRecord?: FollowDocument | null;
+  hasFollowStatus?: boolean;
 };
 
-const UserCard = ({ user }: UserCardProps) => {
+const UserCard = ({ user, followRecord, hasFollowStatus }: UserCardProps) => {
   return (
     <article className="user-card">
       <Link to={`/profile/${user.$id}`} className="flex-center flex-col gap-4">
@@ -27,7 +29,11 @@ const UserCard = ({ user }: UserCardProps) => {
         </div>
       </Link>
 
-      <FollowButton targetUser={user} />
+      <FollowButton
+        targetUser={user}
+        followRecord={followRecord}
+        hasFollowStatus={hasFollowStatus}
+      />
     </article>
   );
 };

@@ -154,8 +154,6 @@ erDiagram
     string imageUrl
     string imageId
     string bio
-    string_array followers
-    string_array following
   }
 
   POST {
@@ -165,7 +163,6 @@ erDiagram
     string imageId
     string location
     string_array tags
-    relationship_array likes
   }
 
   SAVE {
@@ -173,10 +170,23 @@ erDiagram
     relationship post
   }
 
+  LIKE {
+    string userId
+    string postId
+  }
+
+  FOLLOW {
+    string followerId
+    string followingId
+  }
+
   USER ||--o{ POST : creates
   USER ||--o{ SAVE : owns
   POST ||--o{ SAVE : saved_as
-  USER }o--o{ POST : likes
+  USER ||--o{ LIKE : creates
+  POST ||--o{ LIKE : receives
+  USER ||--o{ FOLLOW : follows
+  USER ||--o{ FOLLOW : followed_by
 ```
 
 ### Collections
@@ -186,6 +196,8 @@ erDiagram
 | Users | Stores app profile data linked to Appwrite Auth via `accountId`. |
 | Posts | Stores post content and image metadata. |
 | Saves | Stores user-to-post saved records. |
+| Likes | Stores one user-to-post like relationship per document. |
+| Follows | Stores one follower-to-following relationship per document. |
 
 ### Storage
 
@@ -253,15 +265,15 @@ sequenceDiagram
 sequenceDiagram
   participant User
   participant Stats as PostStats
-  participant DB as Posts Collection
+  participant DB as Likes Collection
   participant RQ as React Query
 
   User->>Stats: Click like
   Stats->>RQ: Snapshot affected query caches
   Stats->>RQ: Optimistically update cached post likes
-  Stats->>DB: Update post.likes array
+  Stats->>DB: Create like document
   alt Success
-    Stats->>RQ: Invalidate post detail, lists, current user
+    Stats->>RQ: Invalidate post detail, lists, liked posts
   else Error
     Stats->>RQ: Restore previous query snapshots
   end
@@ -292,16 +304,18 @@ sequenceDiagram
 sequenceDiagram
   participant User
   participant Button as FollowButton
-  participant Users as Users Collection
+  participant Follows as Follows Collection
   participant RQ as React Query
 
   User->>Button: Click follow/unfollow
-  Button->>Button: Optimistically toggle state
-  Button->>Users: Fetch current and target users
-  Users->>Users: Update current.following
-  Users->>Users: Update target.followers
-  Users-->>Button: Result
-  Button->>RQ: Invalidate current user, users, both profiles
+  Button->>RQ: Optimistically toggle follow status and counts
+  alt Follow
+    Button->>Follows: Create follow document
+  else Unfollow
+    Button->>Follows: Delete follow document
+  end
+  Follows-->>Button: Result
+  Button->>RQ: Invalidate follow status, users, both profiles
 ```
 
 ## 11. Flow Charts
@@ -449,11 +463,13 @@ Reads are keyed by query keys such as:
 
 - `GET_CURRENT_USER`
 - `GET_USERS`
+- `GET_FOLLOW_STATUS`
 - `GET_RECENT_POSTS`
 - `GET_INFINITE_POSTS`
 - `GET_POST_BY_ID`
 - `GET_USER_POSTS`
 - `GET_SAVED_POSTS`
+- `GET_LIKED_POSTS`
 - `SEARCH_POSTS`
 
 Mutations invalidate related queries after success. This keeps feeds, profiles, saved posts, and current user relationships reasonably fresh without manual prop drilling.
@@ -539,7 +555,7 @@ The app builds to static assets through Vite. Runtime backend calls go directly 
 ## 18. High-Level Risks And Tradeoffs
 
 - The frontend talks directly to Appwrite, so permissions must be precise.
-- Likes and follows are stored as arrays, which is simple but can suffer race conditions when multiple users update the same document concurrently.
+- Likes and follows are separate relationship documents, which avoids lost updates but requires precise create/delete permissions and uniqueness for each relationship pair.
 - Saved posts use separate documents, which is cleaner, but `getSavedPosts` fetches each saved post individually.
 - Search depends on Appwrite full-text search on `caption`; fallback search only scans the latest 50 posts.
 - Auth state depends partly on Appwrite's `cookieFallback` localStorage behavior before calling `getCurrentUser`.

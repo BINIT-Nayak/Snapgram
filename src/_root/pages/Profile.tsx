@@ -42,8 +42,8 @@ const Profile = () => {
     );
 
   const posts = userPosts?.documents || [];
-  const followers = currentUser.followers || [];
-  const following = currentUser.following || [];
+  const followersCount = currentUser.followersCount || 0;
+  const followingCount = currentUser.followingCount || 0;
 
   return (
     <div className="profile-container">
@@ -68,8 +68,8 @@ const Profile = () => {
 
             <div className="flex gap-4 mt-10 items-center justify-center xl:justify-start flex-wrap z-20">
               <StatBlock value={posts.length} label="Posts" />
-              <StatBlock value={followers.length} label="Followers" />
-              <StatBlock value={following.length} label="Following" />
+              <StatBlock value={followersCount} label="Followers" />
+              <StatBlock value={followingCount} label="Following" />
             </div>
 
             <p className="small-medium md:base-medium text-center xl:text-left mt-7 max-w-screen-sm">

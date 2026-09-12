@@ -1,11 +1,12 @@
 import { GridPostList, Loader } from "@/components/shared";
-import { useGetCurrentUser } from "@/lib/react-query/queries";
+import { useUserContext } from "@/context/AuthContext";
+import { useGetLikedPosts } from "@/lib/react-query/queries";
 
 const LikedPosts = () => {
-  const { data: currentUser } = useGetCurrentUser();
-  const likedPosts = currentUser?.liked || [];
+  const { user } = useUserContext();
+  const { data: likedPosts = [], isLoading } = useGetLikedPosts(user.id);
 
-  if (!currentUser)
+  if (isLoading)
     return (
       <div className="flex-center w-full h-full">
         <Loader />

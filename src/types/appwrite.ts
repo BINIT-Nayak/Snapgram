@@ -8,11 +8,10 @@ export type UserDocument = Models.Document & {
   imageUrl: string;
   imageId?: string;
   bio: string;
-  followers?: string[];
-  following?: string[];
+  followersCount?: number;
+  followingCount?: number;
   posts?: PostDocument[];
   save?: SaveDocument[];
-  liked?: PostDocument[];
 };
 
 export type PostDocument = Models.Document & {
@@ -22,12 +21,22 @@ export type PostDocument = Models.Document & {
   imageId: string;
   location: string;
   tags?: string[];
-  likes?: UserDocument[];
+  likes?: LikeDocument[];
 };
 
 export type SaveDocument = Models.Document & {
   user: UserDocument | string;
   post: PostDocument | string;
+};
+
+export type LikeDocument = Models.Document & {
+  userId: string;
+  postId: string;
+};
+
+export type FollowDocument = Models.Document & {
+  followerId: string;
+  followingId: string;
 };
 
 export type DocumentList<T extends Models.Document> = Models.DocumentList<T>;
