@@ -20,11 +20,11 @@ vi.mock("@/context/AuthContext", () => ({
 vi.mock("@/lib/react-query/queries", () => ({
   useFollowUser: () => ({
     mutateAsync: mockMutations.followUser,
-    isLoading: false,
+    isPending: false,
   }),
   useUnfollowUser: () => ({
     mutateAsync: mockMutations.unfollowUser,
-    isLoading: false,
+    isPending: false,
   }),
   useGetFollowStatus: () => mockUseGetFollowStatus(),
 }));

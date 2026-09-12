@@ -1,5 +1,6 @@
 import {
   InfiniteData,
+  keepPreviousData,
   useQuery,
   useMutation,
   useQueryClient,
@@ -343,9 +344,10 @@ export const useGetPosts = () => {
     queryKey: [QUERY_KEYS.GET_INFINITE_POSTS],
     queryFn: ({ pageParam }: QueryFunctionContext) =>
       getInfinitePosts({ pageParam: pageParam as string | undefined }),
+    initialPageParam: undefined,
     getNextPageParam: (lastPage) => {
       if (lastPage && lastPage.documents.length === 0) {
-        return null;
+        return undefined;
       }
 
       const lastId = lastPage.documents[lastPage.documents.length - 1].$id;
@@ -371,7 +373,7 @@ export const useSearchSnapgram = (searchTerm: string) => {
     queryKey: [QUERY_KEYS.SEARCH_SNAPGRAM, trimmedSearch],
     queryFn: () => searchSnapgram(trimmedSearch),
     enabled: !!trimmedSearch,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -627,13 +629,14 @@ export const useGetMostLikedPosts = (enabled = true) => {
     queryFn: ({ pageParam }: QueryFunctionContext) =>
       getMostLikedPosts({ pageParam: pageParam as string | undefined }),
     enabled,
+    initialPageParam: undefined,
     getNextPageParam: (lastPage) => {
       if (lastPage && lastPage.documents.length === 0) {
-        return null;
+        return undefined;
       }
 
       const lastId = lastPage.documents[lastPage.documents.length - 1]?.$id;
-      return lastId || null;
+      return lastId || undefined;
     },
   });
 };

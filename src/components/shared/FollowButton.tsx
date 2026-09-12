@@ -27,9 +27,9 @@ const FollowButton = ({
 }: FollowButtonProps) => {
   const { user } = useUserContext();
   const { toast } = useToast();
-  const { mutateAsync: followUser, isLoading: isFollowingUser } =
+  const { mutateAsync: followUser, isPending: isFollowingUser } =
     useFollowUser();
-  const { mutateAsync: unfollowUser, isLoading: isUnfollowingUser } =
+  const { mutateAsync: unfollowUser, isPending: isUnfollowingUser } =
     useUnfollowUser();
   const [isFollowing, setIsFollowing] = useState(false);
 

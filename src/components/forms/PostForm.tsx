@@ -40,9 +40,9 @@ const PostForm = ({ post, action }: PostFormProps) => {
     },
   });
 
-  const { mutateAsync: createPost, isLoading: isLoadingCreate } =
+  const { mutateAsync: createPost, isPending: isLoadingCreate } =
     useCreatePost();
-  const { mutateAsync: updatePost, isLoading: isLoadingUpdate } =
+  const { mutateAsync: updatePost, isPending: isLoadingUpdate } =
     useUpdatePost();
   const caption = useWatch({ control: form.control, name: "caption" }) || "";
   const location = useWatch({ control: form.control, name: "location" }) || "";

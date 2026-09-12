@@ -11,7 +11,7 @@ describe("PerformanceImage", () => {
 
     expect(image).toHaveAttribute("loading", "lazy");
     expect(image).toHaveAttribute("decoding", "async");
-    expect(image).toHaveAttribute("fetchpriority", "auto");
+    expect(image).toHaveAttribute("fetchPriority", "auto");
   });
 
   it("marks priority images eager with high fetch priority", () => {
@@ -20,7 +20,7 @@ describe("PerformanceImage", () => {
     const image = screen.getByAltText("Post");
 
     expect(image).toHaveAttribute("loading", "eager");
-    expect(image).toHaveAttribute("fetchpriority", "high");
+    expect(image).toHaveAttribute("fetchPriority", "high");
   });
 
   it("renders a skeleton until the image loads", () => {

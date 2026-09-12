@@ -6,7 +6,7 @@ import GridPostList from "./GridPostList";
 
 type VirtualPostGridProps = {
   posts: PostDocument[];
-  scrollRef: RefObject<HTMLElement>;
+  scrollRef: RefObject<HTMLElement | null>;
   priorityFirst?: boolean;
 };
 

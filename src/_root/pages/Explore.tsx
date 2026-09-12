@@ -34,7 +34,7 @@ export type SearchResultProps = {
   isSearchError: boolean;
   isSearchFetching: boolean;
   onRetry: () => void;
-  resultRef: RefObject<HTMLDivElement>;
+  resultRef: RefObject<HTMLDivElement | null>;
   searchResults?: SnapgramSearchResults;
 };
 
